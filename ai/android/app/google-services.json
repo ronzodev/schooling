@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612520926911",
+    "project_id": "pamphlet-471f2",
+    "storage_bucket": "pamphlet-471f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612520926911:android:fb6eafd60bddcb4c53b00a",
+        "android_client_info": {
+          "package_name": "com.example.ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

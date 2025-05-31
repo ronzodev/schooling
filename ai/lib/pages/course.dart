@@ -1,0 +1,129 @@
+import 'package:ai/contollers/them_controller.dart';
+import 'package:ai/videos/video_subject_list.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../controllers/controllers.dart';
+import '../drawer/drawer_widget.dart';
+import 'topic.dart';
+
+class CourseListScreen extends StatelessWidget {
+  final List<Color> cardColors = [
+    const Color(0xFF3B82F6), // Blue
+    const Color(0xFFEF4444), // Red
+    const Color(0xFFF97316), // Orange
+    Color.fromARGB(255, 102, 102, 136), // Gray
+  ];
+
+  CourseListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final CourseController courseController = Get.put(CourseController());
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final ThemeController themeController = Get.put(ThemeController());
+    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+    return Scaffold(
+      key: _scaffoldKey,
+      drawer: const CustomDrawer(),
+      body: SafeArea(
+        child: Obx(() {
+          if (courseController.isLoading.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+      
+          final courses = courseController.courses;
+          final cardHeight = screenHeight * 0.22;
+          final cardOverlap = screenHeight * 0.20;
+      
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 70),
+                child: SizedBox(
+                  height: screenHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: List.generate(courses.length, (index) {
+                      final course = courses[index];
+                      final color = cardColors[index % cardColors.length];
+                      final cardWidth = screenWidth *
+                          (0.95 - (index * 0.05)).clamp(0.7, 0.95);
+      
+                      return Positioned(
+                        top: index * cardOverlap,
+                        child: GestureDetector(
+                          onTap: () => Get.to(
+                              () => TopicListScreen(courseId: course['id'])),
+                          child: Container(
+                            width: cardWidth,
+                            height: cardHeight,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(20),
+                                  bottomRight: Radius.circular(20)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 6,
+                                )
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                course['title'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+              // Top bar
+      
+              // Stacked responsive cards
+              Positioned(
+                child: Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                      
+                    IconButton(onPressed: (){
+                      _scaffoldKey.currentState?.openDrawer();
+                    }, icon: const Icon(Icons.menu)),
+                    const Text('Courses'),
+                    Obx(() {
+                      return IconButton(
+                        onPressed: () {
+                          themeController.toggleTheme();
+                        },
+                        icon: Icon(themeController.isDarkMode.value
+                            ? Icons.wb_sunny
+                            : Icons.nights_stay),
+                      );
+                    }),
+
+                    IconButton(onPressed: (){
+                      Get.off(const SubjectListScreen());
+                    }, icon: const Icon(Icons.tv))
+                    
+                  ],
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
