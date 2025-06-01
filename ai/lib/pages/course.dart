@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../controllers/controllers.dart';
 import '../drawer/drawer_widget.dart';
 import 'topic.dart';
+import 'package:ionicons/ionicons.dart';
 
 class CourseListScreen extends StatelessWidget {
   final List<Color> cardColors = [
@@ -140,11 +141,11 @@ class CourseListScreen extends StatelessWidget {
                         onPressed: () {
                           Get.off(const SubjectListScreen());
                         },
-                        icon: const Icon(Icons.tv)),
+                        icon: const Icon(Ionicons.logo_youtube,color: Colors.red,)),
 
                         IconButton(onPressed: (){
                            courseController.fetchCourses(forceRefresh: true);
-                        }, icon: const Icon(Icons.refresh)),
+                        }, icon: const Icon(Ionicons.reload)),
 
                        
                   ],

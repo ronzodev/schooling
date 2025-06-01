@@ -59,6 +59,7 @@ dependencies:
   url_launcher: ^6.1.14
   firebase_analytics: ^11.4.5
   youtube_player_flutter: ^8.1.2
+  ionicons: ^0.2.2
   
 
 
