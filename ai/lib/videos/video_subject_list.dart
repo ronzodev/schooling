@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../pages/main_screen.dart';
+
 class SubjectListScreen extends StatefulWidget {
   const SubjectListScreen({super.key});
 
@@ -218,7 +220,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(onPressed: (){
-          Get.off(CourseListScreen());
+          Get.off(MainScreen());
         }, icon:const  Icon(Icons.arrow_back)),
         title: const Text('Educational Videos'),
         centerTitle: true,

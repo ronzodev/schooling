@@ -1,4 +1,5 @@
 
+
 import 'package:ai/firbase.dart';
 import 'package:ai/pages/main_screen.dart';
 import 'package:ai/videos/video_subject_list.dart';
@@ -10,6 +11,7 @@ import 'package:get/get.dart';
 
 
 void main() async {
+ 
   WidgetsFlutterBinding.ensureInitialized();
    
   
@@ -21,8 +23,10 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
+      
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Firestore Setup',

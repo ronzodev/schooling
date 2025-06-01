@@ -30,14 +30,37 @@ class CourseListScreen extends StatelessWidget {
       drawer: const CustomDrawer(),
       body: SafeArea(
         child: Obx(() {
-          if (courseController.isLoading.value) {
+          // Show loading spinner if loading and there’s no error yet
+          if (courseController.isLoading.value &&
+              courseController.errorMessage.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-      
+
+// Show error message if offline and no data
+          if (courseController.errorMessage.isNotEmpty &&
+              courseController.courses.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                 const Icon(Icons.wifi_off, size: 80, ),
+                  const SizedBox(height: 16),
+                  Text(
+                    courseController.errorMessage.value,
+                    style: const TextStyle(fontSize: 18, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                 
+                ],
+              ),
+            );
+          }
+
           final courses = courseController.courses;
           final cardHeight = screenHeight * 0.22;
           final cardOverlap = screenHeight * 0.20;
-      
+
           return Stack(
             children: [
               Padding(
@@ -51,7 +74,7 @@ class CourseListScreen extends StatelessWidget {
                       final color = cardColors[index % cardColors.length];
                       final cardWidth = screenWidth *
                           (0.95 - (index * 0.05)).clamp(0.7, 0.95);
-      
+
                       return Positioned(
                         top: index * cardOverlap,
                         child: GestureDetector(
@@ -91,16 +114,17 @@ class CourseListScreen extends StatelessWidget {
                 ),
               ),
               // Top bar
-      
+
               // Stacked responsive cards
               Positioned(
                 child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                      
-                    IconButton(onPressed: (){
-                      _scaffoldKey.currentState?.openDrawer();
-                    }, icon: const Icon(Icons.menu)),
+                    IconButton(
+                        onPressed: () {
+                          _scaffoldKey.currentState?.openDrawer();
+                        },
+                        icon: const Icon(Icons.menu)),
                     const Text('Courses'),
                     Obx(() {
                       return IconButton(
@@ -112,12 +136,19 @@ class CourseListScreen extends StatelessWidget {
                             : Icons.nights_stay),
                       );
                     }),
+                    IconButton(
+                        onPressed: () {
+                          Get.off(const SubjectListScreen());
+                        },
+                        icon: const Icon(Icons.tv)),
 
-                    IconButton(onPressed: (){
-                      Get.off(const SubjectListScreen());
-                    }, icon: const Icon(Icons.tv))
-                    
+                        IconButton(onPressed: (){
+                           courseController.fetchCourses(forceRefresh: true);
+                        }, icon: const Icon(Icons.refresh)),
+
+                       
                   ],
+                  
                 ),
               ),
             ],

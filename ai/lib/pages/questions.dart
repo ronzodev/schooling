@@ -24,67 +24,92 @@ class QuestionListScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final QuestionController questionController = Get.put(QuestionController());
+Widget build(BuildContext context) {
+  final QuestionController questionController = Get.put(QuestionController());
 
-    questionController.fetchQuestions(courseId, topicId);
+  questionController.fetchQuestions(courseId, topicId);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Questions"),
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text("Questions"),
       centerTitle: true,
-    
       elevation: 0,
       actions: [
         IconButton(
-        icon: const Icon(Icons.home,),
-        onPressed: () {
-          Get.off(CourseListScreen());
-        },
-      ),
-     const SizedBox( width: 17.0,) ],
-      ),
-      body: Obx(() {
-        if (questionController.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-      
-        return ListView.builder(
-          itemCount: questionController.questions.length,
-          itemBuilder: (context, index) {
-            var question = questionController.questions[index];
-            Color color = getRandomColor(index);
-      
-            return Card(
-              margin: const EdgeInsets.all(12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 4,
-              child: ExpansionTile(
-                leading: CircleAvatar(
-                  backgroundColor: color,
-                  child: Text(
-                    "${index + 1}",
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                title: Text(
-                  question['question'],
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                children: [
-                  ListTile(
-                    title: const Text("Answer:"),
-                    subtitle: Text(question['correctAnswer']),
-                  ),
-                  ListTile(
-                    title: const Text("Explanation:"),
-                    subtitle: Text(question['explanation']),
-                  ),
-                ],
-              ),
-            );
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Get.off(CourseListScreen());
           },
+        ),
+        const SizedBox(width: 17.0),
+      ],
+    ),
+    body: Obx(() {
+      if (questionController.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      // If there's an error, show it
+      if (questionController.errorMessage.isNotEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              questionController.errorMessage.value,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ),
         );
-      }),
-    );
-  }
+      }
+
+      if (questionController.questions.isEmpty) {
+        return const Center(
+          child: Text(
+            "No questions available for this topic.",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        itemCount: questionController.questions.length,
+        itemBuilder: (context, index) {
+          var question = questionController.questions[index];
+          Color color = getRandomColor(index);
+
+          return Card(
+            margin: const EdgeInsets.all(12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 4,
+            child: ExpansionTile(
+              leading: CircleAvatar(
+                backgroundColor: color,
+                child: Text(
+                  "${index + 1}",
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              title: Text(
+                question['question'],
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              children: [
+                ListTile(
+                  title: const Text("Answer:"),
+                  subtitle: Text(question['correctAnswer']),
+                ),
+                ListTile(
+                  title: const Text("Explanation:"),
+                  subtitle: Text(question['explanation']),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }),
+  );
+}
+
 }

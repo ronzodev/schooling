@@ -69,7 +69,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
         }
       
         if (topicController.topics.isEmpty) {
-          return const Center(child: Text("No topics available"));
+          return const Center(child: Text("No internet connection and no cached topics available"));
         }
       
         return PageView.builder(
