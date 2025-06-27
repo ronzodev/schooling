@@ -7,6 +7,7 @@ import '../controllers/controllers.dart';
 import '../drawer/drawer_widget.dart';
 import 'topic.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:lottie/lottie.dart';
 
 class CourseListScreen extends StatelessWidget {
   final List<Color> cardColors = [
@@ -118,6 +119,7 @@ class CourseListScreen extends StatelessWidget {
 
               // Stacked responsive cards
               Positioned(
+                
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -126,7 +128,7 @@ class CourseListScreen extends StatelessWidget {
                           _scaffoldKey.currentState?.openDrawer();
                         },
                         icon: const Icon(Icons.menu)),
-                    const Text('Courses'),
+                    const Text(''),
                     Obx(() {
                       return IconButton(
                         onPressed: () {
@@ -145,7 +147,8 @@ class CourseListScreen extends StatelessWidget {
 
                         IconButton(onPressed: (){
                            courseController.fetchCourses(forceRefresh: true);
-                        }, icon: const Icon(Ionicons.reload)),
+                        }, icon:  Lottie.asset('assets/images/reload.json',
+                                height: 30, width: 30)),
 
                        
                   ],

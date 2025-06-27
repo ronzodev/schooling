@@ -1,8 +1,8 @@
-import 'package:ai/pages/course.dart';
-import 'package:ai/videos/video_screen_list.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ai/pages/course.dart';
+import 'package:ai/videos/video_screen_list.dart';
 
 class TopicListScreenVideo extends StatelessWidget {
   final String subjectId;
@@ -17,14 +17,15 @@ class TopicListScreenVideo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
-      appBar: AppBar(title: Text(subjectTitle),
-      actions: [
-         IconButton(onPressed: (){
-            Get.off(CourseListScreen());
-
-          }, icon: const Icon(Icons.home) )
-      ],),
+      appBar: AppBar(
+        title: Text(subjectTitle),
+        actions: [
+          IconButton(
+            onPressed: () => Get.off(CourseListScreen()),
+            icon: const Icon(Icons.home),
+          ),
+        ],
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('videos')
@@ -46,16 +47,22 @@ class TopicListScreenVideo extends StatelessWidget {
           }
           
           return ListView.builder(
+            padding: const EdgeInsets.all(16),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var topic = snapshot.data!.docs[index];
               return Card(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  title: Text(topic['title']),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  leading: const Icon(Icons.video_library),
+                  title: Text(
+                    topic['title'],
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.push(

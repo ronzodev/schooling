@@ -6,7 +6,7 @@ import 'video_player.dart';
 class VideoListItem extends StatelessWidget {
   final DocumentSnapshot video;
   
-  const VideoListItem({super.key, required this.video});
+  const VideoListItem({super.key, required this.video, required int index});
 
   // Helper function to get YouTube thumbnail URL
   String _getThumbnailUrl(String videoId) {
