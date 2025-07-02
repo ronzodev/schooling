@@ -7,10 +7,29 @@ class MathFormulasScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Math Formulas'),
+        title: const Text('Math Formulas',
+         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDarkMode
+                  ? [
+                      Colors.deepPurple.shade900,
+                      Colors.indigo.shade900,
+                    ]
+                  : [
+                      Colors.deepPurple.shade700,
+                      Colors.indigo.shade700,
+                    ],
+            ),
+          ),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

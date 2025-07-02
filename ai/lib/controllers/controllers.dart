@@ -135,6 +135,7 @@ class TopicController extends GetxController {
 
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  StreamSubscription<QuerySnapshot>? _topicsSubscription;
   var isFirstLoad = true;
 
   @override
@@ -146,6 +147,7 @@ class TopicController extends GetxController {
   @override
   void onClose() {
     _connectivitySubscription.cancel();
+    _topicsSubscription?.cancel();
     super.onClose();
   }
 
@@ -154,87 +156,81 @@ class TopicController extends GetxController {
       final nowOffline = results.isEmpty || results.contains(ConnectivityResult.none);
       isOffline.value = nowOffline;
       if (!nowOffline && currentCourseId != null && (topics.isEmpty || isFirstLoad)) {
-        fetchTopics(currentCourseId!, forceRefresh: true);
+        setupRealtimeTopics(currentCourseId!);
       }
     });
   }
 
-  Future<void> fetchTopics(String courseId, {bool forceRefresh = false}) async {
-    if (isLoading.value && currentCourseId == courseId && !forceRefresh) return;
+  void setupRealtimeTopics(String courseId) {
+    // Cancel any existing subscription
+    _topicsSubscription?.cancel();
     
     currentCourseId = courseId;
     isLoading(true);
     errorMessage('');
+
+    // Load cached data first
+    _loadCachedTopics(courseId);
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      // Load cached data first
-      _loadCachedTopics(prefs, courseId);
-
-      // Skip network fetch if not forced and we have cached data
-      if (!forceRefresh && topics.isNotEmpty) {
-        isLoading(false);
-        return;
-      }
-
-      // Check connectivity
-      final connectivityResult = await _connectivity.checkConnectivity();
-      if (connectivityResult.contains(ConnectivityResult.none)) {
-        isOffline(true);
-        if (topics.isEmpty) {
-          Get.snackbar(
-            'Offline Mode',
-            'No internet connection and no cached topics available',
-            snackPosition: SnackPosition.BOTTOM,
+      // Initialize the topics subscription
+      _topicsSubscription = FirebaseFirestore.instance
+          .collection('courses')
+          .doc(courseId)
+          .collection('topics')
+          .snapshots()
+          .listen(
+            (querySnapshot) => _handleTopicsUpdate(querySnapshot, courseId),
+            onError: (error) => _handleTopicsError(error),
           );
-        }
-        isLoading(false);
-        return;
-      }
+    } catch (e) {
+      _handleTopicsError(e);
+    }
+  }
 
-      // Fetch fresh data
-      await _fetchFreshTopics(prefs, courseId);
+  Future<void> _handleTopicsUpdate(QuerySnapshot querySnapshot, String courseId) async {
+    try {
+      final freshTopics = querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {...data, 'id': doc.id};
+      }).toList();
+
+      topics.value = freshTopics;
+      isOffline(false);
+      
+      // Update cache
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cachedTopics_$courseId', jsonEncode(freshTopics));
+      lastFetchTime.value = DateTime.now();
+      await prefs.setString('lastTopicsFetch_$courseId', lastFetchTime.value.toIso8601String());
+      
+      isLoading(false);
       isFirstLoad = false;
     } catch (e) {
-      errorMessage('Failed to load topics: ${e.toString()}');
-      print("Error fetching topics: $e");
-    } finally {
+      _handleTopicsError(e);
+    }
+  }
+
+  void _handleTopicsError(dynamic error) {
+    errorMessage('Failed to load topics: ${error.toString()}');
+    Get.snackbar(
+      'Error',
+      'Failed to load topics: ${error.toString()}',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+    if (topics.isEmpty) {
       isLoading(false);
     }
   }
 
-  Future<void> _fetchFreshTopics(SharedPreferences prefs, String courseId) async {
+  Future<void> _loadCachedTopics(String courseId) async {
     try {
-      var topicsSnapshot = await FirebaseFirestore.instance
-          .collection('courses')
-          .doc(courseId)
-          .collection('topics')
-          .get(const GetOptions(source: Source.serverAndCache));
-
-      final freshTopics = topicsSnapshot.docs.map((doc) {
-        var data = doc.data()!;
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-
-      if (freshTopics.isNotEmpty) {
-        topics.value = freshTopics;
-        isOffline(false);
-        await prefs.setString('cachedTopics_$courseId', jsonEncode(freshTopics));
-        await prefs.setString('lastTopicsFetch_$courseId', DateTime.now().toIso8601String());
-      }
-    } catch (e) {
-      if (topics.isEmpty) rethrow;
-    }
-  }
-
-  void _loadCachedTopics(SharedPreferences prefs, String courseId) {
-    try {
+      final prefs = await SharedPreferences.getInstance();
       final cachedTopics = prefs.getString('cachedTopics_$courseId');
       if (cachedTopics != null) {
-        topics.value = List<Map<String, dynamic>>.from(
-          (jsonDecode(cachedTopics) as List).map((e) => Map<String, dynamic>.from(e)),
-        );
+        topics.value = (jsonDecode(cachedTopics) as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
         final lastFetch = prefs.getString('lastTopicsFetch_$courseId');
         if (lastFetch != null) {
           lastFetchTime.value = DateTime.parse(lastFetch);
@@ -244,7 +240,34 @@ class TopicController extends GetxController {
       print("Error loading cached topics: $e");
     }
   }
+
+  Future<void> refreshTopics() async {
+    if (currentCourseId != null) {
+      isLoading(true);
+      errorMessage('');
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('courses')
+            .doc(currentCourseId!)
+            .collection('topics')
+            .get(const GetOptions(source: Source.server));
+        
+        await _handleTopicsUpdate(querySnapshot, currentCourseId!);
+      } catch (e) {
+        errorMessage('Failed to refresh: ${e.toString()}');
+        Get.snackbar(
+          'Error',
+          'Failed to refresh topics: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      } finally {
+        isLoading(false);
+      }
+    }
+  }
 }
+
+
 
 class QuestionController extends GetxController {
   var questions = <Map<String, dynamic>>[].obs;
@@ -257,17 +280,20 @@ class QuestionController extends GetxController {
 
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  StreamSubscription<QuerySnapshot>? _questionsSubscription;
   var isFirstLoad = true;
 
   @override
   void onInit() {
     super.onInit();
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((_) {});
     _setupConnectivityListener();
   }
 
   @override
   void onClose() {
     _connectivitySubscription.cancel();
+    _questionsSubscription?.cancel();
     super.onClose();
   }
 
@@ -276,86 +302,79 @@ class QuestionController extends GetxController {
       final nowOffline = results.isEmpty || results.contains(ConnectivityResult.none);
       isOffline.value = nowOffline;
       if (!nowOffline && currentCourseId != null && currentTopicId != null && (questions.isEmpty || isFirstLoad)) {
-        fetchQuestions(currentCourseId!, currentTopicId!, forceRefresh: true);
+        setupRealtimeQuestions(currentCourseId!, currentTopicId!);
       }
     });
   }
 
-  Future<void> fetchQuestions(String courseId, String topicId, {bool forceRefresh = false}) async {
-    if (isLoading.value && currentCourseId == courseId && currentTopicId == topicId && !forceRefresh) return;
+  void setupRealtimeQuestions(String courseId, String topicId) {
+    // Cancel any existing subscription
+    _questionsSubscription?.cancel();
     
     currentCourseId = courseId;
     currentTopicId = topicId;
     isLoading(true);
     errorMessage('');
+
+    // Load cached data first
+    _loadCachedQuestions(courseId, topicId);
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      // Load cached data first
-      _loadCachedQuestions(prefs, courseId, topicId);
-
-      // Skip network fetch if not forced and we have cached data
-      if (!forceRefresh && questions.isNotEmpty) {
-        isLoading(false);
-        return;
-      }
-
-      // Check connectivity
-      final connectivityResult = await _connectivity.checkConnectivity();
-      if (connectivityResult.contains(ConnectivityResult.none)) {
-        isOffline(true);
-        if (questions.isEmpty) {
-          errorMessage('No internet connection and no cached questions available');
-        }
-        isLoading(false);
-        return;
-      }
-
-      // Fetch fresh data
-      await _fetchFreshQuestions(prefs, courseId, topicId);
-      isFirstLoad = false;
-    } catch (e) {
-      errorMessage('Failed to load questions: ${e.toString()}');
-      print("Error fetching questions: $e");
-    } finally {
-      isLoading(false);
-    }
-  }
-
-  Future<void> _fetchFreshQuestions(SharedPreferences prefs, String courseId, String topicId) async {
-    try {
-      var questionsSnapshot = await FirebaseFirestore.instance
+      // Initialize the questions subscription
+      _questionsSubscription = FirebaseFirestore.instance
           .collection('courses')
           .doc(courseId)
           .collection('topics')
           .doc(topicId)
           .collection('questions')
-          .get(const GetOptions(source: Source.serverAndCache));
-
-      final freshQuestions = questionsSnapshot.docs.map((doc) {
-        final data = doc.data()!;
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-
-      if (freshQuestions.isNotEmpty) {
-        questions.value = freshQuestions;
-        isOffline(false);
-        await prefs.setString('cachedQuestions_${courseId}_$topicId', jsonEncode(freshQuestions));
-        await prefs.setString('lastQuestionsFetch_${courseId}_$topicId', DateTime.now().toIso8601String());
-      }
+          .snapshots()
+          .listen(
+            (querySnapshot) => _handleQuestionsUpdate(querySnapshot, courseId, topicId),
+            onError: (error) => _handleQuestionsError(error),
+          );
     } catch (e) {
-      if (questions.isEmpty) rethrow;
+      _handleQuestionsError(e);
     }
   }
 
-  void _loadCachedQuestions(SharedPreferences prefs, String courseId, String topicId) {
+  Future<void> _handleQuestionsUpdate(QuerySnapshot querySnapshot, String courseId, String topicId) async {
     try {
+      final freshQuestions = querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {...data, 'id': doc.id};
+      }).toList();
+
+      questions.value = freshQuestions;
+      isOffline(false);
+      
+      // Update cache
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cachedQuestions_${courseId}_$topicId', jsonEncode(freshQuestions));
+      lastFetchTime.value = DateTime.now();
+      await prefs.setString('lastQuestionsFetch_${courseId}_$topicId', lastFetchTime.value.toIso8601String());
+      
+      isLoading(false);
+      isFirstLoad = false;
+    } catch (e) {
+      _handleQuestionsError(e);
+    }
+  }
+
+  void _handleQuestionsError(dynamic error) {
+    errorMessage('Failed to load questions: ${error.toString()}');
+    if (questions.isEmpty) {
+      isLoading(false);
+    }
+  }
+
+  Future<void> _loadCachedQuestions(String courseId, String topicId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
       final cachedQuestions = prefs.getString('cachedQuestions_${courseId}_$topicId');
       if (cachedQuestions != null) {
-        questions.value = List<Map<String, dynamic>>.from(
-          (jsonDecode(cachedQuestions) as List).map((e) => Map<String, dynamic>.from(e)),
-        );
+        questions.value = (jsonDecode(cachedQuestions) as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
         final lastFetch = prefs.getString('lastQuestionsFetch_${courseId}_$topicId');
         if (lastFetch != null) {
           lastFetchTime.value = DateTime.parse(lastFetch);
@@ -363,6 +382,28 @@ class QuestionController extends GetxController {
       }
     } catch (e) {
       print("Error loading cached questions: $e");
+    }
+  }
+
+  Future<void> refreshQuestions() async {
+    if (currentCourseId != null && currentTopicId != null) {
+      isLoading(true);
+      errorMessage('');
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('courses')
+            .doc(currentCourseId!)
+            .collection('topics')
+            .doc(currentTopicId!)
+            .collection('questions')
+            .get(const GetOptions(source: Source.server));
+        
+        await _handleQuestionsUpdate(querySnapshot, currentCourseId!, currentTopicId!);
+      } catch (e) {
+        errorMessage('Failed to refresh: ${e.toString()}');
+      } finally {
+        isLoading(false);
+      }
     }
   }
 }

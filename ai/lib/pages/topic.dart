@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:ai/pages/questions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../controllers/controllers.dart';
@@ -35,7 +36,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
   void initState() {
     super.initState();
 
-    topicController.fetchTopics(widget.courseId);
+    topicController.setupRealtimeTopics(widget.courseId);
 
     const initialPage = 2;
     _controller = PageController(
@@ -58,20 +59,44 @@ class _TopicListScreenState extends State<TopicListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        
-      title: const Text("Topics"),
-      centerTitle: true,),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          "Topics",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDarkMode
+                  ? [
+                      Colors.deepPurple.shade900,
+                      Colors.indigo.shade900,
+                    ]
+                  : [
+                      Colors.deepPurple.shade700,
+                      Colors.indigo.shade700,
+                    ],
+            ),
+          ),
+        ),
+      ),
       body: Obx(() {
         if (topicController.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
-      
+
         if (topicController.topics.isEmpty) {
-          return const Center(child: Text("No internet connection and no cached topics available"));
+          return const Center(
+              child: Text(
+                  "No internet connection and no cached topics available"));
         }
-      
+
         return PageView.builder(
           itemCount: topicController.topics.length,
           controller: _controller,
@@ -82,49 +107,49 @@ class _TopicListScreenState extends State<TopicListScreen> {
             final isCurrentPageAnimating = currentPageInt == index;
             final isNextPageAnimating = currentPageInt + 1 == index;
             final indexSmallerThanCurrentPage = currentPageInt >= index;
-      
+
             const rotationsAngle = [0, 110, 187, 280, 360];
             final maxRotations = rotationsAngle.length;
             final lastRotationsAngleIndex = maxRotations - 1;
-      
+
             final rotateXStartIndex = math.min(
               (currentPageInt - index).abs(),
               lastRotationsAngleIndex,
             );
-      
+
             final rotateXEndIndex = switch (indexSmallerThanCurrentPage) {
               true => math.min(rotateXStartIndex + 1, lastRotationsAngleIndex),
               false => math.min(rotateXStartIndex - 1, lastRotationsAngleIndex),
             };
-      
+
             final rotateXStartAngle = rotationsAngle[rotateXStartIndex];
             final rotateXEndAngle = rotationsAngle[rotateXEndIndex];
-      
+
             final rotateXAngle = switch (indexSmallerThanCurrentPage) {
               true => -(rotateXStartAngle +
                   ((rotateXEndAngle - rotateXStartAngle) * progress)),
               false => (rotateXStartAngle +
                   ((rotateXEndAngle - rotateXStartAngle) * progress)),
             };
-      
+
             const maxRotateZAngle = -7.5;
             final rotateZAngle = isCurrentPageAnimating
                 ? maxRotateZAngle * (1 - progress)
                 : isNextPageAnimating
                     ? maxRotateZAngle * progress
                     : 0;
-      
+
             const maxScale = 1.15;
             final double scaleValue = isCurrentPageAnimating
                 ? 1 + (maxScale - 1) * (1 - progress)
                 : isNextPageAnimating
                     ? 1 + (maxScale - 1) * progress
                     : 1;
-      
+
             bool showFront = rotateXAngle > -90 && rotateXAngle < 90;
-      
+
             final cardColor = colorPalette[index % colorPalette.length];
-      
+
             return GestureDetector(
               onTap: () {
                 if (isCurrentPageAnimating || isNextPageAnimating) {

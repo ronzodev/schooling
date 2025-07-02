@@ -14,7 +14,7 @@ class SubjectListScreen extends StatefulWidget {
 
 class _SubjectListScreenState extends State<SubjectListScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   // Subject colors that adapt to theme
   Map<String, Color> _getSubjectColors(BuildContext context) {
@@ -80,21 +80,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDarkMode
-                ? [
-                    const Color(0xFF121212),
-                    const Color(0xFF1E1E1E),
-                  ]
-                : [
-                    const Color(0xFFE8EAF6),
-                    const Color(0xFFC5CAE9),
-                  ],
-          ),
-        ),
+        
         child: _isLoading
             ? Center(
                 child: CircularProgressIndicator(
@@ -183,63 +169,45 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
           InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: () => _navigateToSubject(subject),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: isDarkMode
-                      ? [
-                          Colors.black.withOpacity(0.6),
-                          Colors.black.withOpacity(0.8),
-                        ]
-                      : [
-                          Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.6),
-                        ],
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        icon,
-                        style: const TextStyle(fontSize: 36),
-                      ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.2),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        subject['title'],
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    child: Text(
+                      icon,
+                      style: const TextStyle(fontSize: 50),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      subject['title'],
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Icon(
-                      Icons.play_circle_fill,
-                      color: Colors.white.withOpacity(isDarkMode ? 0.9 : 1.0),
-                      size: 24,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  Icon(
+                    Icons.play_circle_fill,
+                    color: Colors.black.withOpacity(isDarkMode ? 0.9 : 1.0),
+                    size: 50,
+                  ),
+                ],
               ),
             ),
           ),

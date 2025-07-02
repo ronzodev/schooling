@@ -40,16 +40,36 @@ class ElementsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Colors.blueGrey[900],
       appBar: AppBar(
         title: const Text(
           'Elements',
-          
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20.0,
+          ),
         ),
         centerTitle: true,
-        
-      
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDarkMode
+                  ? [
+                      Colors.deepPurple.shade900,
+                      Colors.indigo.shade900,
+                    ]
+                  : [
+                      Colors.deepPurple.shade700,
+                      Colors.indigo.shade700,
+                    ],
+            ),
+          ),
+        ),
       ),
       body: FutureBuilder<List<ElementData>>(
         future: gridList,
@@ -99,10 +119,11 @@ class ElementTile extends StatelessWidget {
     final tileText = <Widget>[
       Align(
         alignment: AlignmentDirectional.centerStart,
-        child: Text('${element.number}',
-            style: const TextStyle(fontSize: 16.0, color: Colors.white,
-                fontWeight: FontWeight.w600),
-            ),
+        child: Text(
+          '${element.number}',
+          style: const TextStyle(
+              fontSize: 16.0, color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
       Text(
         element.symbol,
