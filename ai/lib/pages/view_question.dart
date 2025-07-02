@@ -7,7 +7,7 @@ class ImageZoomScreen extends StatefulWidget {
     final String imageUrl;
     final int index;
 
-    const ImageZoomScreen({required this.imageUrl, required this.index});
+    const ImageZoomScreen({super.key, required this.imageUrl, required this.index});
 
     @override
     _ImageZoomScreenState createState() => _ImageZoomScreenState();
@@ -46,47 +46,36 @@ class ImageZoomScreen extends StatefulWidget {
 
     @override
     Widget build(BuildContext context) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        floatingActionButton: AnimatedOpacity(
-          opacity: showFloatingButton ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          child: FloatingActionButton(
-            heroTag: null,
-            backgroundColor: Colors.white12,
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Icon(Icons.arrow_back, color: Colors.orange,weight: 23,size: 32,),
+  return Scaffold(
+    backgroundColor: const Color.fromARGB(255, 143, 138, 138),
+    floatingActionButton: AnimatedOpacity(
+      opacity: 1.0, // Always visible
+      duration: const Duration(milliseconds: 200),
+      child: FloatingActionButton(
+        heroTag: null,
+        backgroundColor: Colors.grey.withOpacity(0.3),
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Icon(Icons.arrow_back, color: Colors.orange, weight: 23, size: 32),
+      ),
+    ),
+    body: Center(
+      child: Hero(
+        tag: 'image_${widget.index}',
+        child: PhotoView(
+          controller: controller,
+          imageProvider: CachedNetworkImageProvider(widget.imageUrl),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.covered * 3,
+          initialScale: PhotoViewComputedScale.contained,
+          backgroundDecoration: const BoxDecoration(color: Colors.black),
+          loadingBuilder: (context, event) => Center(
+            child: CircularProgressIndicator(
+              value: event == null ? 0 : event.cumulativeBytesLoaded / event.expectedTotalBytes!,
+            ),
           ),
         ),
-        body: GestureDetector(
-          onTap: () {
-            setState(() {
-              showFloatingButton = !showFloatingButton;
-            });
-          },
-          child: Stack(
-            children: [
-              Center(
-                child: Hero(
-                  tag: 'image_${widget.index}',
-                  child: PhotoView(
-                    controller: controller,
-                    imageProvider: CachedNetworkImageProvider(widget.imageUrl),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.covered * 3,
-                    initialScale: PhotoViewComputedScale.contained,
-                    backgroundDecoration: const BoxDecoration(color: Colors.black),
-                    loadingBuilder: (context, event) => Center(
-                      child: CircularProgressIndicator(
-                        value: event == null ? 0 : event.cumulativeBytesLoaded / event.expectedTotalBytes!,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+      ),
+    ),
+  );
+}
   }

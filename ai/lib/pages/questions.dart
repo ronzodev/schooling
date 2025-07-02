@@ -2,7 +2,6 @@ import 'package:ai/pages/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:photo_view/photo_view.dart';
 import '../controllers/controllers.dart';
 import 'view_question.dart';
 
@@ -10,7 +9,8 @@ class QuestionListScreen extends StatelessWidget {
   final String courseId;
   final String topicId;
 
-  QuestionListScreen({super.key, required this.courseId, required this.topicId});
+  QuestionListScreen(
+      {super.key, required this.courseId, required this.topicId});
 
   final QuestionController questionController = Get.put(QuestionController());
 
@@ -33,12 +33,10 @@ class QuestionListScreen extends StatelessWidget {
   ];
 
   Color getCardColor(int index, bool isDarkMode) {
-    return isDarkMode 
+    return isDarkMode
         ? darkCardColors[index % darkCardColors.length]
         : lightCardColors[index % lightCardColors.length];
   }
-
-  
 
   Widget _buildQuestionCard({
     required String? imageUrl,
@@ -58,7 +56,9 @@ class QuestionListScreen extends StatelessWidget {
               Get.to(
                 () => ImageZoomScreen(
                   imageUrl: imageUrl,
-                  index: isQuestion ? index : index + 1000, // Differentiate question/answer images
+                  index: isQuestion
+                      ? index
+                      : index + 1000, // Differentiate question/answer images
                 ),
                 transition: Transition.fadeIn,
                 duration: const Duration(milliseconds: 300),
@@ -77,7 +77,8 @@ class QuestionListScreen extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: imageUrl,
                     placeholder: (context, url) => Container(
-                      color: isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
+                      color:
+                          isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
                       child: Center(
                         child: CircularProgressIndicator(
                           color: Get.theme.colorScheme.primary,
@@ -85,7 +86,8 @@ class QuestionListScreen extends StatelessWidget {
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      color: isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
+                      color:
+                          isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
                       child: Icon(
                         Icons.error,
                         color: Get.theme.colorScheme.error,
@@ -105,9 +107,11 @@ class QuestionListScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isQuestion 
+                color: isQuestion
                     ? cardColor.withOpacity(isDarkMode ? 0.5 : 0.3)
-                    : isDarkMode ? Colors.grey.shade900 : Colors.white,
+                    : isDarkMode
+                        ? Colors.grey.shade900
+                        : Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: SelectableText(
@@ -115,7 +119,7 @@ class QuestionListScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isQuestion ? 18 : 16,
                   fontWeight: isQuestion ? FontWeight.w600 : FontWeight.normal,
-                  color: isDarkMode 
+                  color: isDarkMode
                       ? (isQuestion ? Colors.white : Colors.grey.shade300)
                       : (isQuestion ? Colors.black87 : Colors.black54),
                 ),
@@ -144,7 +148,8 @@ class QuestionListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final QuestionController questionController = Get.find<QuestionController>();
+    final QuestionController questionController =
+        Get.find<QuestionController>();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -208,7 +213,8 @@ class QuestionListScreen extends StatelessWidget {
                 ),
         ),
         child: Obx(() {
-          if (questionController.isLoading.value && questionController.questions.isEmpty) {
+          if (questionController.isLoading.value &&
+              questionController.questions.isEmpty) {
             return Center(
               child: CircularProgressIndicator(
                 color: Get.theme.colorScheme.primary,
@@ -216,7 +222,8 @@ class QuestionListScreen extends StatelessWidget {
             );
           }
 
-          if (questionController.errorMessage.isNotEmpty && questionController.questions.isEmpty) {
+          if (questionController.errorMessage.isNotEmpty &&
+              questionController.questions.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +254,8 @@ class QuestionListScreen extends StatelessWidget {
                         vertical: 12,
                       ),
                     ),
-                    onPressed: () => questionController.setupRealtimeQuestions(courseId, topicId),
+                    onPressed: () => questionController.setupRealtimeQuestions(
+                        courseId, topicId),
                     child: Text(
                       "Try Again",
                       style: TextStyle(color: Get.theme.colorScheme.onPrimary),
@@ -281,7 +289,9 @@ class QuestionListScreen extends StatelessWidget {
                     "Check back later or contact your instructor",
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade600,
+                      color: isDarkMode
+                          ? Colors.grey.shade500
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -319,8 +329,10 @@ class QuestionListScreen extends StatelessWidget {
                     ),
                     color: color,
                     child: ExpansionTile(
-                      iconColor: isDarkMode ? Colors.grey.shade300 : Colors.blueGrey,
-                      collapsedIconColor: isDarkMode ? Colors.grey.shade300 : Colors.blueGrey,
+                      iconColor:
+                          isDarkMode ? Colors.grey.shade300 : Colors.blueGrey,
+                      collapsedIconColor:
+                          isDarkMode ? Colors.grey.shade300 : Colors.blueGrey,
                       tilePadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
@@ -329,10 +341,13 @@ class QuestionListScreen extends StatelessWidget {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: isDarkMode ? Colors.grey.shade800 : Colors.white,
+                          color:
+                              isDarkMode ? Colors.grey.shade800 : Colors.white,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isDarkMode ? Colors.grey.shade500 : Colors.blueGrey,
+                            color: isDarkMode
+                                ? Colors.grey.shade500
+                                : Colors.blueGrey,
                             width: 1.5,
                           ),
                         ),
@@ -341,7 +356,9 @@ class QuestionListScreen extends StatelessWidget {
                             "${index + 1}",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: isDarkMode ? Colors.grey.shade300 : Colors.blueGrey,
+                              color: isDarkMode
+                                  ? Colors.grey.shade300
+                                  : Colors.blueGrey,
                             ),
                           ),
                         ),
@@ -356,13 +373,16 @@ class QuestionListScreen extends StatelessWidget {
                         height: 180,
                       ),
                       children: [
-                        if (question['correctAnswer'] != null || question['correctAnswerImage'] != null)
+                        if (question['correctAnswer'] != null ||
+                            question['correctAnswerImage'] != null)
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildSectionTitle("Correct Answer", isDarkMode),
+                                _buildSectionTitle(
+                                    "Correct Answer", isDarkMode),
                                 _buildQuestionCard(
                                   imageUrl: question['correctAnswerImage'],
                                   text: question['correctAnswer'],
@@ -375,7 +395,8 @@ class QuestionListScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                        if (question['explanation'] != null && question['explanation'].isNotEmpty)
+                        if (question['explanation'] != null &&
+                            question['explanation'].isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                             child: Column(
@@ -385,14 +406,18 @@ class QuestionListScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isDarkMode ? Colors.grey.shade900 : Colors.white,
+                                    color: isDarkMode
+                                        ? Colors.grey.shade900
+                                        : Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     question['explanation'],
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: isDarkMode ? Colors.grey.shade300 : Colors.black87,
+                                      color: isDarkMode
+                                          ? Colors.grey.shade300
+                                          : Colors.black87,
                                       height: 1.4,
                                     ),
                                   ),
