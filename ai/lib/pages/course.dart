@@ -1,9 +1,10 @@
-import 'package:ai/contollers/them_controller.dart';
+
 import 'package:ai/videos/video_subject_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../controllers/controllers.dart';
+import '../controllers/course_controller.dart';
+import '../controllers/theme_controller.dart';
 import '../drawer/drawer_widget.dart';
 import 'topic.dart';
 import 'package:ionicons/ionicons.dart';

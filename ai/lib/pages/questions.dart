@@ -2,8 +2,10 @@ import 'package:ai/pages/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../controllers/controllers.dart';
+import '../controllers/question_controller.dart';
 import 'view_question.dart';
+  import 'package:flutter_tex/flutter_tex.dart';
+
 
 class QuestionListScreen extends StatelessWidget {
   final String courseId;
@@ -38,99 +40,121 @@ class QuestionListScreen extends StatelessWidget {
         : lightCardColors[index % lightCardColors.length];
   }
 
-  Widget _buildQuestionCard({
-    required String? imageUrl,
-    required String? text,
-    required bool isQuestion,
-    required Color cardColor,
-    required bool isDarkMode,
-    required int index,
-    double height = 200,
-  }) {
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (imageUrl != null && imageUrl.isNotEmpty)
-          GestureDetector(
-            onTap: () {
-              Get.to(
-                () => ImageZoomScreen(
-                  imageUrl: imageUrl,
-                  index: isQuestion
-                      ? index
-                      : index + 1000, // Differentiate question/answer images
-                ),
-                transition: Transition.fadeIn,
-                duration: const Duration(milliseconds: 300),
-              );
-            },
-            child: Hero(
-              tag: isQuestion ? 'image_$index' : 'image_${index + 1000}',
-              child: Container(
-                height: height,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: isDarkMode ? Colors.grey.shade900 : Colors.white,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    placeholder: (context, url) => Container(
-                      color:
-                          isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Get.theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color:
-                          isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
-                      child: Icon(
-                        Icons.error,
-                        color: Get.theme.colorScheme.error,
-                      ),
-                    ),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        if (text != null && text.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.only(
-              top: (imageUrl != null && imageUrl.isNotEmpty) ? 12.0 : 0,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isQuestion
-                    ? cardColor.withOpacity(isDarkMode ? 0.5 : 0.3)
-                    : isDarkMode
-                        ? Colors.grey.shade900
-                        : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SelectableText(
-                text,
-                style: TextStyle(
-                  fontSize: isQuestion ? 18 : 16,
-                  fontWeight: isQuestion ? FontWeight.w600 : FontWeight.normal,
-                  color: isDarkMode
-                      ? (isQuestion ? Colors.white : Colors.grey.shade300)
-                      : (isQuestion ? Colors.black87 : Colors.black54),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
 
-    return content;
-  }
+Widget _buildQuestionCard({
+  required String? imageUrl,
+  required String? text,
+  required bool isQuestion,
+  required Color cardColor,
+  required bool isDarkMode,
+  required int index,
+  double height = 200,
+}) {
+  final content = Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (imageUrl != null && imageUrl.isNotEmpty)
+        GestureDetector(
+          onTap: () {
+            Get.to(
+              () => ImageZoomScreen(
+                imageUrl: imageUrl,
+                index: isQuestion ? index : index + 1000,
+              ),
+              transition: Transition.fadeIn,
+              duration: const Duration(milliseconds: 300),
+            );
+          },
+          child: Hero(
+            tag: isQuestion ? 'image_$index' : 'image_${index + 1000}',
+            child: Container(
+              height: height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: isDarkMode ? Colors.grey.shade900 : Colors.white,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  placeholder: (context, url) => Container(
+                    color: isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Get.theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: isDarkMode ? Colors.grey.shade800 : Colors.grey[200],
+                    child: Icon(
+                      Icons.error,
+                      color: Get.theme.colorScheme.error,
+                    ),
+                  ),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+        ),
+      if (text != null && text.isNotEmpty)
+        Padding(
+          padding: EdgeInsets.only(
+            top: (imageUrl != null && imageUrl.isNotEmpty) ? 12.0 : 0,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isQuestion
+                  ? cardColor.withOpacity(isDarkMode ? 0.5 : 0.3)
+                  : isDarkMode
+                      ? Colors.grey.shade900
+                      : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: text.trim().contains(r'$$')
+                ? TeXView(
+                    child: TeXViewDocument(
+                      '''
+                      <p style="font-size:16px;">${text.replaceAll(r'$$', '')}</p>
+                      ''',
+                      style: const TeXViewStyle(
+                        textAlign: TeXViewTextAlign.left,
+                        padding: TeXViewPadding.all(6),
+                      ),
+                    ),
+                    style: TeXViewStyle(
+                      backgroundColor: isDarkMode ? Colors.white : Colors.white,
+                      borderRadius: const TeXViewBorderRadius.all(10),
+                      elevation: 0,
+                      border: const TeXViewBorder.all(TeXViewBorderDecoration(
+                        borderColor: Colors.transparent,
+                        borderWidth: 0,
+                      )),
+                    ),
+                    loadingWidgetBuilder: (context) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : SelectableText(
+                    text,
+                    style: TextStyle(
+                      fontSize: isQuestion ? 18 : 16,
+                      fontWeight: isQuestion ? FontWeight.w600 : FontWeight.normal,
+                      color: isDarkMode
+                          ? (isQuestion ? Colors.white : Colors.grey.shade300)
+                          : (isQuestion ? Colors.black87 : Colors.black54),
+                    ),
+                  ),
+          ),
+        ),
+    ],
+  );
+
+  return content;
+}
+
 
   Widget _buildSectionTitle(String title, bool isDarkMode) {
     return Padding(
@@ -396,35 +420,57 @@ class QuestionListScreen extends StatelessWidget {
                             ),
                           ),
                         if (question['explanation'] != null &&
-                            question['explanation'].isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSectionTitle("Explanation", isDarkMode),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: isDarkMode
-                                        ? Colors.grey.shade900
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    question['explanation'],
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: isDarkMode
-                                          ? Colors.grey.shade300
-                                          : Colors.black87,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+    question['explanation'].isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle("Explanation", isDarkMode),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.grey.shade900 : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: question['explanation'].toString().contains(r'$$')
+              ? TeXView(
+                  child: TeXViewDocument(
+                    '''
+                    <p style="font-size:15px;">${question['explanation'].toString().replaceAll(r'$$', '')}</p>
+                    ''',
+                    style: const TeXViewStyle(
+                      textAlign: TeXViewTextAlign.left,
+                      padding: TeXViewPadding.all(6),
+                    ),
+                  ),
+                  style: TeXViewStyle(
+                    backgroundColor: isDarkMode ? Colors.white : Colors.white,
+                    borderRadius: const TeXViewBorderRadius.all(10),
+                    elevation: 0,
+                    border: const TeXViewBorder.all(TeXViewBorderDecoration(
+                      borderColor: Colors.transparent,
+                      borderWidth: 0,
+                    )),
+                  ),
+                  loadingWidgetBuilder: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : Text(
+                  question['explanation'],
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: isDarkMode
+                        ? Colors.grey.shade300
+                        : Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+        ),
+      ],
+    ),
+  ),
                       ],
                     ),
                   ),

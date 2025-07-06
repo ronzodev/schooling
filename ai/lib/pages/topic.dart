@@ -2,10 +2,11 @@ import 'dart:math' as math;
 
 import 'package:ai/pages/questions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
-import '../controllers/controllers.dart';
+import '../controllers/topic_controller.dart';
+
+
 
 class TopicListScreen extends StatefulWidget {
   final String courseId;
