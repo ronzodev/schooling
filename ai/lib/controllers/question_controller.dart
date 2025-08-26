@@ -13,7 +13,13 @@ class QuestionController extends GetxController {
   var lastFetchTime = DateTime(0).obs;
   String? currentCourseId;
   String? currentTopicId;
-
+  
+  // Pagination variables
+  var hasMore = true.obs;
+  var isLoadingMore = false.obs;
+  DocumentSnapshot? _lastDocument;
+  final int _pageSize = 10; // Number of questions per page
+  
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   StreamSubscription<QuerySnapshot>? _questionsSubscription;
@@ -47,6 +53,9 @@ class QuestionController extends GetxController {
     // Cancel any existing subscription
     _questionsSubscription?.cancel();
     
+    // Reset pagination state
+    _resetPagination();
+    
     currentCourseId = courseId;
     currentTopicId = topicId;
     isLoading(true);
@@ -56,13 +65,15 @@ class QuestionController extends GetxController {
     _loadCachedQuestions(courseId, topicId);
 
     try {
-      // Initialize the questions subscription
+      // Initialize the questions subscription with pagination
       _questionsSubscription = FirebaseFirestore.instance
           .collection('courses')
           .doc(courseId)
           .collection('topics')
           .doc(topicId)
           .collection('questions')
+          .orderBy('createdAt', descending: true) // Add ordering for consistent pagination
+          .limit(_pageSize)
           .snapshots()
           .listen(
             (querySnapshot) => _handleQuestionsUpdate(querySnapshot, courseId, topicId),
@@ -70,6 +81,56 @@ class QuestionController extends GetxController {
           );
     } catch (e) {
       _handleQuestionsError(e);
+    }
+  }
+
+  Future<void> loadMoreQuestions() async {
+    if (isLoadingMore.value || !hasMore.value || currentCourseId == null || currentTopicId == null) return;
+    
+    isLoadingMore(true);
+    
+    try {
+      Query query = FirebaseFirestore.instance
+          .collection('courses')
+          .doc(currentCourseId!)
+          .collection('topics')
+          .doc(currentTopicId!)
+          .collection('questions')
+          .orderBy('createdAt', descending: true);
+
+      if (_lastDocument != null) {
+        query = query.startAfterDocument(_lastDocument!);
+      }
+
+      query = query.limit(_pageSize);
+
+      final querySnapshot = await query.get();
+      
+      if (querySnapshot.docs.isEmpty) {
+        hasMore.value = false;
+        return;
+      }
+
+      final newQuestions = querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {...data, 'id': doc.id};
+      }).toList();
+
+      questions.addAll(newQuestions);
+      
+      if (querySnapshot.docs.length < _pageSize) {
+        hasMore.value = false;
+      } else {
+        _lastDocument = querySnapshot.docs.last;
+      }
+
+      // Update cache with new data
+      await _updateCache();
+
+    } catch (e) {
+      errorMessage('Failed to load more questions: ${e.toString()}');
+    } finally {
+      isLoadingMore(false);
     }
   }
 
@@ -81,18 +142,57 @@ class QuestionController extends GetxController {
       }).toList();
 
       questions.value = freshQuestions;
+      
+      // Update pagination state
+      if (querySnapshot.docs.isNotEmpty) {
+        _lastDocument = querySnapshot.docs.last;
+        hasMore.value = querySnapshot.docs.length == _pageSize;
+      } else {
+        hasMore.value = false;
+      }
+
       isOffline(false);
       
       // Update cache
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cachedQuestions_${courseId}_$topicId', jsonEncode(freshQuestions));
+      await _updateCache();
+      
       lastFetchTime.value = DateTime.now();
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setString('lastQuestionsFetch_${courseId}_$topicId', lastFetchTime.value.toIso8601String());
       
       isLoading(false);
       isFirstLoad = false;
+      
     } catch (e) {
       _handleQuestionsError(e);
+    }
+  }
+
+
+// collapse the answer
+// Add this to your QuestionController class
+var collapsedStates = <String, bool>{}.obs;
+
+void toggleQuestionCollapse(String questionId) {
+  if (collapsedStates.containsKey(questionId)) {
+    collapsedStates[questionId] = !collapsedStates[questionId]!;
+  } else {
+    collapsedStates[questionId] = true; // Start collapsed by default
+  }
+  collapsedStates.refresh();
+}
+
+bool isQuestionCollapsed(String questionId) {
+  return collapsedStates[questionId] ?? true; // Default to collapsed
+}
+
+  Future<void> _updateCache() async {
+    if (currentCourseId != null && currentTopicId != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'cachedQuestions_${currentCourseId}_$currentTopicId', 
+        jsonEncode(questions)
+      );
     }
   }
 
@@ -125,6 +225,8 @@ class QuestionController extends GetxController {
     if (currentCourseId != null && currentTopicId != null) {
       isLoading(true);
       errorMessage('');
+      _resetPagination();
+      
       try {
         final querySnapshot = await FirebaseFirestore.instance
             .collection('courses')
@@ -132,8 +234,10 @@ class QuestionController extends GetxController {
             .collection('topics')
             .doc(currentTopicId!)
             .collection('questions')
+            .orderBy('createdAt', descending: true)
+            .limit(_pageSize)
             .get(const GetOptions(source: Source.server));
-        
+
         await _handleQuestionsUpdate(querySnapshot, currentCourseId!, currentTopicId!);
       } catch (e) {
         errorMessage('Failed to refresh: ${e.toString()}');
@@ -141,5 +245,16 @@ class QuestionController extends GetxController {
         isLoading(false);
       }
     }
+  }
+
+  void _resetPagination() {
+    _lastDocument = null;
+    hasMore.value = true;
+    isLoadingMore.value = false;
+  }
+
+  void clearQuestions() {
+    questions.clear();
+    _resetPagination();
   }
 }
