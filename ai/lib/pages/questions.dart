@@ -142,7 +142,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                     ),
                     onPressed: () =>
                         questionController.setupRealtimeQuestions(widget.courseId, widget.topicId),
-                    child: Text(
+                    child: const Text(
                       "Try Again",
                       style: TextStyle(color: Colors.white),
                     ),
@@ -218,7 +218,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
             : questionController.hasMore.value
                 ? ElevatedButton(
                     onPressed: () => questionController.loadMoreQuestions(),
-                    child: Text("Load More"),
+                    child: const Text("Load More"),
                   )
                 : Text(
                     "No no more questions, more coming soon sit tight",

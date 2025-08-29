@@ -40,57 +40,58 @@ class CourseController extends GetxController {
   }
 
   Future<void> fetchCourses({bool forceRefresh = false}) async {
-  if (!forceRefresh && !isFirstLoad && courses.isNotEmpty) return;
-
-  isLoading(true);
-  errorMessage('');
-  try {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Load cached data first
-    _loadCachedCourses(prefs);
-
-    // Show cached courses immediately if available
-    if (!forceRefresh && courses.isNotEmpty) {
-      isLoading(false);
+    if (!forceRefresh && !isFirstLoad && courses.isNotEmpty) {
+      // Already loaded, don’t fetch again
       return;
     }
 
-    // Check for internet
-    final connectivityResult = await _connectivity.checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      isOffline(true);
-      if (courses.isEmpty) {
-        errorMessage('No internet connection and no cached courses available');
+    isLoading(true);
+    errorMessage('');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Step 1: Load cached data
+      _loadCachedCourses(prefs);
+
+      // Step 2: If cache exists and not forcing refresh, stop here
+      if (!forceRefresh && courses.isNotEmpty) {
+        isLoading(false);
+        isFirstLoad = false;
+        return;
+      }
+
+      // Step 3: Check for internet
+      final connectivityResult = await _connectivity.checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        isOffline(true);
+        if (courses.isEmpty) {
+          errorMessage('No internet connection and no cached courses available');
+        }
         isLoading(false);
         return;
       }
+
+      // Step 4: Fetch fresh from Firestore
+      await _fetchFreshCourses(prefs);
+      isFirstLoad = false;
+    } catch (e) {
+      if (courses.isEmpty) {
+        errorMessage('Failed to load courses: ${e.toString()}');
+      }
+      print("Error fetching courses: $e");
+    } finally {
       isLoading(false);
-      return;
     }
-
-    // Try fetching fresh data
-    await _fetchFreshCourses(prefs);
-    isFirstLoad = false;
-  } catch (e) {
-    if (courses.isEmpty) {
-      errorMessage('Failed to load courses: ${e.toString()}');
-    }
-    print("Error fetching courses: $e");
-  } finally {
-    isLoading(false);
   }
-}
-
 
   Future<void> _fetchFreshCourses(SharedPreferences prefs) async {
     try {
       var coursesSnapshot = await FirebaseFirestore.instance
           .collection('courses')
-          .get(const GetOptions(source: Source.serverAndCache));
+          .get(const GetOptions(source: Source.server));
 
       final freshCourses = coursesSnapshot.docs.map((doc) {
-        var data = doc.data()!;
+        var data = doc.data();
         data['id'] = doc.id;
         return data;
       }).toList();
@@ -98,12 +99,13 @@ class CourseController extends GetxController {
       if (freshCourses.isNotEmpty) {
         courses.value = freshCourses;
         isOffline(false);
+
+        // Save to cache
         await prefs.setString('cachedCourses', jsonEncode(freshCourses));
         await prefs.setString('lastCourseFetch', DateTime.now().toIso8601String());
       }
     } catch (e) {
-      // If fresh fetch fails but we have cached data, keep showing cached data
-      if (courses.isEmpty) rethrow;
+      if (courses.isEmpty) rethrow; // only throw if nothing cached
     }
   }
 
