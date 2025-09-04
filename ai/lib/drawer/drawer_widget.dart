@@ -13,7 +13,7 @@ class CustomDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
-           DrawerHeader(
+          DrawerHeader(
             decoration: const BoxDecoration(
               color: Colors.blue,
             ),
@@ -22,14 +22,14 @@ class CustomDrawer extends StatelessWidget {
               children: [
                 Image.asset(
                   'assets/images/app_icon.png',
-                  height: 100,
+                  width: 70,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 5),
                 const Text(
                   'schooling',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -46,25 +46,56 @@ class CustomDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.book),
             title: const Text('Courses'),
-            onTap: () {              Get.offAll(() => CourseListScreen());
-
+            onTap: () {
+              Get.offAll(() => CourseListScreen());
             },
           ),
           ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
+            leading: const Icon(Icons.share),
+            title: const Text('Share App'),
             onTap: () {
               // Add your settings page navigation here
             },
           ),
           ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
+            leading: const Icon(Icons.privacy_tip),
+            title: const Text('Privacy Policy'),
             onTap: () {
               // Handle logout logic
             },
           ),
-        ],
+           ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text('About Us'),
+            onTap: () {
+              // Handle logout logic
+            },
+          ),
+          const Divider(),
+          const Text('Social Media',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold)),
+       ListTile(
+            leading: const Icon(Icons.facebook),
+            title: const Text('facebook'),
+            onTap: () {
+              // Handle logout logic
+            },
+          ), 
+          ListTile(
+            leading: const Icon(Icons.tiktok),
+            title: const Text('TikTok'),
+            onTap: () {
+              // Handle logout logic
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.chat_rounded),
+            title: const Text('whatsapp'),
+            onTap: () {
+              // Handle logout logic
+            },
+          ), ],
       ),
     );
   }

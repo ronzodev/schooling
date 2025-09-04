@@ -9,7 +9,7 @@ import '../drawer/drawer_widget.dart';
 import 'topic.dart';
 import 'package:ionicons/ionicons.dart';
 
-class CourseListScreen extends StatelessWidget {
+class CourseListScreen extends StatelessWidget  {
   final List<Color> cardColors = [
     const Color(0xFF3B82F6), // Blue
     const Color(0xFFEF4444), // Red

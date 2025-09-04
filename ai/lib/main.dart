@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 
+import 'solar/solar_system_screen.dart';
+
 
 
 
@@ -29,10 +31,10 @@ class MyApp extends StatelessWidget {
       
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Firestore Setup',
+      title: 'Ai',
       theme: ThemeData(primarySwatch: Colors.blue),
       
-      home:MainScreen() 
+      home: const SolarSystemScreen()
       
        
        
