@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart'; // Add this import
 
 import 'solar_model.dart';
 import 'solar_widget.dart';
@@ -16,6 +19,8 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
   String _currentPlanet = 'Sun';
+  final Connectivity _connectivity = Connectivity(); // Add connectivity instance
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription; // Fix type to match onConnectivityChanged
 
   static const String _baseUrl = 'https://bailus.github.io/WebGL-Solar-System/';
 
@@ -23,6 +28,52 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   void initState() {
     super.initState();
     _initializeWebView();
+    _startMonitoringConnectivity(); // Start monitoring connectivity
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel(); // Cancel subscription when disposed
+    super.dispose();
+  }
+
+  void _startMonitoringConnectivity() {
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((result) {
+      if (result == ConnectivityResult.none) {
+        _showNoInternetMessage();
+      }
+    });
+  }
+
+  void _showNoInternetMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.wifi_off, color: Colors.white, size: 20),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Connection lost. Please check your internet connection to explore the solar system.',
+                style: TextStyle(fontSize: 14,color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color.fromARGB(255, 156, 152, 152),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        action: SnackBarAction(
+          label: 'RETRY',
+          textColor: Colors.amber[300],
+          onPressed: () {
+            _controller.reload();
+          },
+        ),
+      ),
+    );
   }
 
   void _initializeWebView() {
@@ -39,7 +90,12 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
             _enableMobileTouchControls();
           },
           onWebResourceError: (WebResourceError error) {
-            _showErrorSnackBar('Failed to load: ${error.description}');
+            // Check if error is due to no internet
+            if (error.errorCode == -2 || error.errorCode == -1009) {
+              _showNoInternetMessage();
+            } else {
+              _showErrorSnackBar('Failed to load: ${error.description}');
+            }
           },
         ),
       )
@@ -110,21 +166,35 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   }
 
   void _navigateToPlanet(Planet planet) {
-    _controller.loadRequest(Uri.parse('$_baseUrl${planet.url}'));
-    setState(() => _currentPlanet = planet.name);
-    _showPlanetInfoSnackBar(planet);
+    // Check connectivity before navigating
+    _connectivity.checkConnectivity().then((result) {
+      if (result == ConnectivityResult.none) {
+        _showNoInternetMessage();
+      } else {
+        _controller.loadRequest(Uri.parse('$_baseUrl${planet.url}'));
+        setState(() => _currentPlanet = planet.name);
+        _showPlanetInfoSnackBar(planet);
+      }
+    });
   }
 
   void _showPlanetSelector() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => PlanetSelectorSheet(
-        currentPlanet: _currentPlanet,
-        onPlanetSelected: _navigateToPlanet,
-      ),
-    );
+    // Check connectivity before showing planet selector
+    _connectivity.checkConnectivity().then((result) {
+      if (result == ConnectivityResult.none) {
+        _showNoInternetMessage();
+      } else {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => PlanetSelectorSheet(
+            currentPlanet: _currentPlanet,
+            onPlanetSelected: _navigateToPlanet,
+          ),
+        );
+      }
+    });
   }
 
   void _showPlanetInfoSnackBar(Planet planet) {
@@ -140,7 +210,11 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red[700]),
+      SnackBar(
+        content: Text(message), 
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -161,7 +235,15 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.refresh),
-          onPressed: () => _controller.reload(),
+          onPressed: () {
+            _connectivity.checkConnectivity().then((result) {
+              if (result == ConnectivityResult.none) {
+                _showNoInternetMessage();
+              } else {
+                _controller.reload();
+              }
+            });
+          },
         ),
         IconButton(
           icon: const Icon(Icons.info_outline),
@@ -176,7 +258,6 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
       children: [
         WebViewWidget(controller: _controller),
         LoadingOverlay(isLoading: _isLoading),
-      
       ],
     );
   }
@@ -184,7 +265,7 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   Widget _buildFloatingActionButton() {
     return FloatingActionButton.extended(
       onPressed: _showPlanetSelector,
-      backgroundColor: Colors.deepPurple,
+      backgroundColor: const Color.fromARGB(255, 144, 134, 161),
       icon: const Icon(Icons.public),
       label: const Text('Planets'),
     );
@@ -200,12 +281,14 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
         content: const Text(
           '🌍 Explore our solar system in 3D!\n\n'
           '👉 Drag to rotate\n'
-          '👉 Navigate planets from the menu\n\n'
-          ,
+          '👉 Navigate planets from the menu\n\n',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('Close')
+          ),
         ],
       ),
     );

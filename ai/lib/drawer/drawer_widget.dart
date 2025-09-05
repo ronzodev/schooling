@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:line_icons/line_icon.dart';
 import '../pages/course.dart';
 import '../pages/main_screen.dart';
 
@@ -37,61 +38,61 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Home'),
+            leading: const Icon(Icons.home, color: Colors.black),
+            title: const Text('Home',style: TextStyle(color: Colors.black),),
             onTap: () {
               Get.offAll(() => MainScreen());
             },
           ),
           ListTile(
-            leading: const Icon(Icons.book),
-            title: const Text('Courses'),
+            leading: const Icon(Icons.book, color: Colors.black),
+            title: const Text('Courses',style: TextStyle(color: Colors.black) ),
             onTap: () {
               Get.offAll(() => CourseListScreen());
             },
           ),
           ListTile(
-            leading: const Icon(Icons.share),
-            title: const Text('Share App'),
+            leading: const Icon(Icons.share, color: Colors.black),
+            title: const Text('Share App', style: TextStyle(color: Colors.black)),
             onTap: () {
               // Add your settings page navigation here
             },
           ),
           ListTile(
-            leading: const Icon(Icons.privacy_tip),
-            title: const Text('Privacy Policy'),
+            leading: const Icon(Icons.privacy_tip, color: Colors.black,),
+            title: const Text('Privacy Policy', style: TextStyle(color: Colors.black)),
             onTap: () {
               // Handle logout logic
             },
           ),
            ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text('About Us'),
+            leading: const Icon(Icons.info, color: Colors.black),
+            title: const Text('About Us',style: TextStyle(color: Colors.black)),
             onTap: () {
               // Handle logout logic
             },
           ),
           const Divider(),
-          const Text('Social Media',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Follow Us On', textAlign: TextAlign.center,
+              
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
        ListTile(
-            leading: const Icon(Icons.facebook),
-            title: const Text('facebook'),
+            leading: const Icon(Icons.facebook, color: Colors.black),
+            title: const Text('facebook', style: TextStyle(color: Colors.black)),
             onTap: () {
               // Handle logout logic
             },
           ), 
           ListTile(
-            leading: const Icon(Icons.tiktok),
-            title: const Text('TikTok'),
+            leading: const Icon(Icons.tiktok, color: Colors.black),
+            title: const Text('TikTok', style: TextStyle(color: Colors.black)),
             onTap: () {
               // Handle logout logic
             },
           ),
           ListTile(
-            leading: const Icon(Icons.chat_rounded),
-            title: const Text('whatsapp'),
+            leading: const LineIcon( Icons.messenger, color: Colors.black),
+            title: const Text('whatsapp', style: TextStyle(color: Colors.black)),
             onTap: () {
               // Handle logout logic
             },

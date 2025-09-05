@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       title: 'Ai',
       theme: ThemeData(primarySwatch: Colors.blue),
       
-      home: const SolarSystemScreen()
+      home: MainScreen()
       
        
        

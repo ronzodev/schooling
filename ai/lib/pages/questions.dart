@@ -10,7 +10,8 @@ class QuestionListScreen extends StatefulWidget {
   final String courseId;
   final String topicId;
 
-  QuestionListScreen({super.key, required this.courseId, required this.topicId});
+  QuestionListScreen(
+      {super.key, required this.courseId, required this.topicId});
 
   @override
   State<QuestionListScreen> createState() => _QuestionListScreenState();
@@ -20,17 +21,17 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
   final QuestionController questionController = Get.put(QuestionController());
   final ScrollController _scrollController = ScrollController();
 
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (questionController.questions.isEmpty ||
           questionController.currentCourseId != widget.courseId ||
           questionController.currentTopicId != widget.topicId) {
-        questionController.setupRealtimeQuestions(widget.courseId, widget.topicId);
+        questionController.setupRealtimeQuestions(
+            widget.courseId, widget.topicId);
       }
     });
   }
@@ -43,8 +44,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
   }
 
   void _scrollListener() {
-    if (_scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent - 100 &&
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 100 &&
         !questionController.isLoadingMore.value &&
         questionController.hasMore.value) {
       questionController.loadMoreQuestions();
@@ -60,7 +61,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          "Practice Questions",
+          "Questions",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -84,7 +85,12 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
             icon: const Icon(Icons.home, color: Colors.white),
             onPressed: () => Get.offAll(MainScreen()),
           ),
-        ],
+          
+        IconButton(
+    icon: const Icon(Icons.help_outline, color: Colors.white),
+    onPressed: () => _showZoomHelpDialog(),
+  ),
+ ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -140,8 +146,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                         vertical: 12,
                       ),
                     ),
-                    onPressed: () =>
-                        questionController.setupRealtimeQuestions(widget.courseId, widget.topicId),
+                    onPressed: () => questionController.setupRealtimeQuestions(
+                        widget.courseId, widget.topicId),
                     child: const Text(
                       "Try Again",
                       style: TextStyle(color: Colors.white),
@@ -188,12 +194,13 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
           return ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            itemCount: questionController.questions.length + (questionController.hasMore.value ? 1 : 0),
+            itemCount: questionController.questions.length +
+                (questionController.hasMore.value ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == questionController.questions.length) {
                 return _buildLoadMoreIndicator(primaryColor);
               }
-              
+
               return _buildTimelineCard(
                 context,
                 index,
@@ -209,12 +216,36 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
     );
   }
 
+  // zoom help function
+
+  void _showZoomHelpDialog() {
+    Get.defaultDialog(
+      title: 'Zoom Help',
+      titleStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      middleText: 'If you can\'t see the questions or answers clearly:\n\n'
+           '👉 Tap to zoom\n'
+           '📝 For text questions: These cannot be zoomed (fixed text)\n\n'
+           
+          ,
+      middleTextStyle:const TextStyle(fontSize: 14, color: Colors.white),
+      textConfirm: 'OK',
+      confirmTextColor: Colors.white,
+      onConfirm: () => Get.back(),
+      buttonColor: Colors.blue,
+      backgroundColor: Colors.grey[900]!,
+      titlePadding: const EdgeInsets.all(20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    );
+  }
+
   Widget _buildLoadMoreIndicator(Color primaryColor) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Center(
         child: questionController.isLoadingMore.value
-            ? CircularProgressIndicator(color: primaryColor)
+            ? CircularProgressIndicator(
+                color: Colors.indigo.shade900,
+              )
             : questionController.hasMore.value
                 ? ElevatedButton(
                     onPressed: () => questionController.loadMoreQuestions(),
@@ -334,7 +365,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                   primaryColor: primaryColor,
                 ),
               ),
-            
+
             // Question image
             if (question['imageUrl'] != null && question['imageUrl'].isNotEmpty)
               Padding(
@@ -356,7 +387,9 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                       height: 200,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100,
+                        color: isDarkMode
+                            ? Colors.grey.shade900
+                            : Colors.grey.shade100,
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
@@ -364,7 +397,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                           imageUrl: question['imageUrl'],
                           fit: BoxFit.contain,
                           placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(color: primaryColor),
+                            child:
+                                CircularProgressIndicator(color: primaryColor),
                           ),
                           errorWidget: (context, url, error) => Icon(
                             Icons.error,
@@ -376,24 +410,26 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                   ),
                 ),
               ),
-            
+
             // Correct answer
-            if (question['correctAnswer'] != null || question['correctAnswerImage'] != null)
+            if (question['correctAnswer'] != null ||
+                question['correctAnswerImage'] != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
                     child: Text(
                       "Correct Answer",
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color.fromARGB(255, 89, 172, 240),
+                          fontStyle: FontStyle.normal),
                     ),
                   ),
-                  if (question['correctAnswer'] != null && question['correctAnswer'].isNotEmpty)
+                  if (question['correctAnswer'] != null &&
+                      question['correctAnswer'].isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: _buildContentSection(
@@ -402,7 +438,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                         isDarkMode: isDarkMode,
                       ),
                     ),
-                  if (question['correctAnswerImage'] != null && question['correctAnswerImage'].isNotEmpty)
+                  if (question['correctAnswerImage'] != null &&
+                      question['correctAnswerImage'].isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: GestureDetector(
@@ -422,7 +459,9 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                             height: 150,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              color: isDarkMode ? Colors.grey.shade900 : Colors.grey.shade100,
+                              color: isDarkMode
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade100,
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
@@ -430,7 +469,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                                 imageUrl: question['correctAnswerImage'],
                                 fit: BoxFit.contain,
                                 placeholder: (context, url) => Center(
-                                  child: CircularProgressIndicator(color: primaryColor),
+                                  child: CircularProgressIndicator(
+                                      color: primaryColor),
                                 ),
                                 errorWidget: (context, url, error) => Icon(
                                   Icons.error,
@@ -444,9 +484,10 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                     ),
                 ],
               ),
-            
+
             // Explanation
-            if (question['explanation'] != null && question['explanation'].isNotEmpty)
+            if (question['explanation'] != null &&
+                question['explanation'].isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -503,7 +544,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                 ),
               ),
               style: TeXViewStyle(
-                backgroundColor: isDarkMode ? Colors.grey.shade900 : Colors.white,
+                backgroundColor:
+                    isDarkMode ? Colors.grey.shade900 : Colors.white,
                 borderRadius: const TeXViewBorderRadius.all(10),
                 elevation: 0,
                 border: const TeXViewBorder.all(TeXViewBorderDecoration(
