@@ -10,7 +10,7 @@ class QuestionListScreen extends StatefulWidget {
   final String courseId;
   final String topicId;
 
-  QuestionListScreen(
+  const QuestionListScreen(
       {super.key, required this.courseId, required this.topicId});
 
   @override
@@ -20,6 +20,10 @@ class QuestionListScreen extends StatefulWidget {
 class _QuestionListScreenState extends State<QuestionListScreen> {
   final QuestionController questionController = Get.put(QuestionController());
   final ScrollController _scrollController = ScrollController();
+  
+  // Add these variables for answer visibility control
+  final RxBool showAllAnswers = false.obs;
+  final RxSet<int> visibleAnswers = <int>{}.obs;
 
   @override
   void initState() {
@@ -49,6 +53,30 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
         !questionController.isLoadingMore.value &&
         questionController.hasMore.value) {
       questionController.loadMoreQuestions();
+    }
+  }
+
+  // Toggle individual answer visibility
+  void _toggleAnswerVisibility(int index) {
+    if (visibleAnswers.contains(index)) {
+      visibleAnswers.remove(index);
+    } else {
+      visibleAnswers.add(index);
+    }
+  }
+
+  // Toggle all answers visibility
+  void _toggleAllAnswers() {
+    showAllAnswers.value = !showAllAnswers.value;
+    if (showAllAnswers.value) {
+      // Show all answers
+      visibleAnswers.clear();
+      for (int i = 0; i < questionController.questions.length; i++) {
+        visibleAnswers.add(i);
+      }
+    } else {
+      // Hide all answers
+      visibleAnswers.clear();
     }
   }
 
@@ -86,11 +114,21 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
             onPressed: () => Get.offAll(MainScreen()),
           ),
           
-        IconButton(
-    icon: const Icon(Icons.help_outline, color: Colors.white),
-    onPressed: () => _showZoomHelpDialog(),
-  ),
- ],
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Colors.white),
+            onPressed: () => _showZoomHelpDialog(),
+          ),
+          
+          // Add toggle all answers button
+          Obx(() => IconButton(
+            icon: Icon(
+              showAllAnswers.value ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white,
+            ),
+            tooltip: showAllAnswers.value ? 'Hide All Answers' : 'Show All Answers',
+            onPressed: _toggleAllAnswers,
+          )),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -106,129 +144,136 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                   end: Alignment.bottomCenter,
                 ),
         ),
-        child: Obx(() {
-          if (questionController.isLoading.value &&
-              questionController.questions.isEmpty) {
-            return Center(
-              child: CircularProgressIndicator(color: primaryColor),
-            );
-          }
+        child: Column(
+          children: [
+            // Questions list
+            Expanded(
+              child: Obx(() {
+                if (questionController.isLoading.value &&
+                    questionController.questions.isEmpty) {
+                  return Center(
+                    child: CircularProgressIndicator(color: primaryColor),
+                  );
+                }
 
-          if (questionController.errorMessage.isNotEmpty &&
-              questionController.questions.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Get.theme.colorScheme.error,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    questionController.errorMessage.value,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isDarkMode ? Colors.grey.shade300 : Colors.grey,
+                if (questionController.errorMessage.isNotEmpty &&
+                    questionController.questions.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: Get.theme.colorScheme.error,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          questionController.errorMessage.value,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                          onPressed: () => questionController.setupRealtimeQuestions(
+                              widget.courseId, widget.topicId),
+                          child: const Text(
+                            "Try Again",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                    onPressed: () => questionController.setupRealtimeQuestions(
-                        widget.courseId, widget.topicId),
-                    child: const Text(
-                      "Try Again",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
+                  );
+                }
 
-          if (questionController.questions.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.quiz_outlined,
-                    size: 48,
-                    color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "No questions available yet",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: isDarkMode ? Colors.grey.shade300 : Colors.grey,
+                if (questionController.questions.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.quiz_outlined,
+                          size: 48,
+                          color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "No questions available yet",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Check back later or contact your instructor",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Check back later or contact your instructor",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDarkMode
-                          ? Colors.grey.shade500
-                          : Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
+                  );
+                }
 
-          return ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            itemCount: questionController.questions.length +
-                (questionController.hasMore.value ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == questionController.questions.length) {
-                return _buildLoadMoreIndicator(primaryColor);
-              }
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  itemCount: questionController.questions.length +
+                      (questionController.hasMore.value ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == questionController.questions.length) {
+                      return _buildLoadMoreIndicator(primaryColor);
+                    }
 
-              return _buildTimelineCard(
-                context,
-                index,
-                questionController.questions[index],
-                isDarkMode,
-                primaryColor,
-                questionController.questions.length,
-              );
-            },
-          );
-        }),
+                    return _buildTimelineCard(
+                      context,
+                      index,
+                      questionController.questions[index],
+                      isDarkMode,
+                      primaryColor,
+                      questionController.questions.length,
+                    );
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // zoom help function
-
   void _showZoomHelpDialog() {
     Get.defaultDialog(
-      title: 'Zoom Help',
-      titleStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-      middleText: 'If you can\'t see the questions or answers clearly:\n\n'
-           '👉 Tap to zoom\n'
-           '📝 For text questions: These cannot be zoomed (fixed text)\n\n'
-           
-          ,
-      middleTextStyle:const TextStyle(fontSize: 14, color: Colors.white),
-      textConfirm: 'OK',
+      title: 'Study Tips',
+      titleStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+      middleText: 'Study Mode Features:\n\n'
+           '👁️ Toggle answers visibility to test yourself\n'
+           '🔍 Tap images to zoom for better viewing\n'
+           '📝 Text questions cannot be zoomed (fixed text)\n'
+           '💡 Use the eye icon to show/hide all answers\n'
+           '🎯 Individual answers can be toggled by tapping the reveal button',
+      middleTextStyle: const TextStyle(fontSize: 14, color: Colors.white),
+      textConfirm: 'Got it!',
       confirmTextColor: Colors.white,
       onConfirm: () => Get.back(),
       buttonColor: Colors.blue,
@@ -252,7 +297,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                     child: const Text("Load More"),
                   )
                 : Text(
-                    "No no more questions, more coming soon sit tight",
+                    "No more questions, more coming soon sit tight",
                     style: TextStyle(
                       color: Colors.grey.shade600,
                     ),
@@ -261,7 +306,6 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
     );
   }
 
-  // Keep all your existing methods exactly as they were...
   Widget _buildTimelineCard(
     BuildContext context,
     int index,
@@ -411,21 +455,92 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                 ),
               ),
 
-            // Correct answer
-            if (question['correctAnswer'] != null ||
-                question['correctAnswerImage'] != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            // Answer reveal section with toggle
+            Obx(() => _buildAnswerSection(
+              index: index,
+              question: question,
+              isDarkMode: isDarkMode,
+              primaryColor: primaryColor,
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnswerSection({
+    required int index,
+    required Map<String, dynamic> question,
+    required bool isDarkMode,
+    required Color primaryColor,
+  }) {
+    final hasAnswer = (question['correctAnswer'] != null && 
+                      question['correctAnswer'].isNotEmpty) ||
+                     (question['correctAnswerImage'] != null && 
+                      question['correctAnswerImage'].isNotEmpty);
+    
+    final hasExplanation = question['explanation'] != null && 
+                          question['explanation'].isNotEmpty;
+    
+    if (!hasAnswer && !hasExplanation) return const SizedBox.shrink();
+    
+    final isVisible = visibleAnswers.contains(index);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Answer reveal button
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: ElevatedButton.icon(
+            onPressed: () => _toggleAnswerVisibility(index),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isVisible 
+                  ? primaryColor.withOpacity(0.8) 
+                  : isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+              foregroundColor: isVisible 
+                  ? Colors.white 
+                  : isDarkMode ? Colors.white : Colors.black87,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: Icon(
+              isVisible ? Icons.visibility_off : Icons.visibility,
+              size: 20,
+            ),
+            label: Text(
+              isVisible ? 'Hide Answer' : 'Reveal Answer',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        
+        // Answer content (shown when visible)
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: isVisible ? null : 0,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: isVisible ? 1.0 : 0.0,
+            child: isVisible ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Correct answer
+                if (hasAnswer) ...[
                   const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.only(top: 16, bottom: 8),
                     child: Text(
                       "Correct Answer",
                       style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color.fromARGB(255, 89, 172, 240),
-                          fontStyle: FontStyle.normal),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 89, 172, 240),
+                      ),
                     ),
                   ),
                   if (question['correctAnswer'] != null &&
@@ -483,14 +598,9 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                       ),
                     ),
                 ],
-              ),
 
-            // Explanation
-            if (question['explanation'] != null &&
-                question['explanation'].isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                // Explanation
+                if (hasExplanation) ...[
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
@@ -508,10 +618,11 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                     isDarkMode: isDarkMode,
                   ),
                 ],
-              ),
-          ],
+              ],
+            ) : const SizedBox.shrink(),
+          ),
         ),
-      ),
+      ],
     );
   }
 
