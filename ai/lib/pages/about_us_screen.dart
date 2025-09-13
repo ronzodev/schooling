@@ -87,14 +87,14 @@ class AboutUsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Title
-                      Text(
-                        controller.aboutUsData.value.title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
+                      // Text(
+                      //   controller.aboutUsData.value.title,
+                      //   style: const TextStyle(
+                      //     fontSize: 24,
+                      //     fontWeight: FontWeight.bold,
+                      //     color: Colors.black,
+                      //   ),
+                      // ),
                       const SizedBox(height: 16),
 
                       // Description
@@ -342,7 +342,7 @@ class AboutUsPage extends StatelessWidget {
           content,
           style: const TextStyle(
             fontSize: 16,
-            color: Colors.black87,
+            
             height: 1.5,
           ),
         ),
@@ -384,7 +384,7 @@ class AboutUsPage extends StatelessWidget {
                   aboutUs.email,
                   style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: Color.fromARGB(255, 45, 65, 82),
                   ),
                 ),
               ),
