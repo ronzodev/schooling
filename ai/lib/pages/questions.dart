@@ -243,13 +243,12 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                       return _buildLoadMoreIndicator(primaryColor);
                     }
 
-                    return _buildTimelineCard(
-                      context,
-                      index,
-                      questionController.questions[index],
-                      isDarkMode,
-                      primaryColor,
-                      questionController.questions.length,
+                    return _buildQuestionCard(
+                      context: context,
+                      index: index,
+                      question: questionController.questions[index],
+                      isDarkMode: isDarkMode,
+                      primaryColor: primaryColor,
                     );
                   },
                 );
@@ -293,8 +292,11 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
               )
             : questionController.hasMore.value
                 ? ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orangeAccent
+                  ),
                     onPressed: () => questionController.loadMoreQuestions(),
-                    child: const Text("Load More"),
+                    child: const Text("Loading more...", style: TextStyle(color: Colors.white),),
                   )
                 : Text(
                     "No more questions, more coming soon sit tight",
@@ -302,80 +304,6 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                       color: Colors.grey.shade600,
                     ),
                   ),
-      ),
-    );
-  }
-
-  Widget _buildTimelineCard(
-    BuildContext context,
-    int index,
-    Map<String, dynamic> question,
-    bool isDarkMode,
-    Color primaryColor,
-    int totalCount,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Timeline indicator
-          Column(
-            children: [
-              // Top line (only for items after the first)
-              if (index > 0)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: primaryColor.withOpacity(0.4),
-                ),
-              // Number indicator
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: primaryColor,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: primaryColor.withOpacity(0.5),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    "${index + 1}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-              // Bottom line (only for items before the last)
-              if (index < totalCount - 1)
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: primaryColor.withOpacity(0.4),
-                ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          // Question card
-          Expanded(
-            child: _buildQuestionCard(
-              context: context,
-              index: index,
-              question: question,
-              isDarkMode: isDarkMode,
-              primaryColor: primaryColor,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -390,85 +318,110 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
     // Check if question has an image
     final hasQuestionImage = question['imageUrl'] != null && question['imageUrl'].isNotEmpty;
 
-    return Stack(
-      children: [
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color: isDarkMode ? Colors.grey.shade800 : Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Question content
-                if (question['question'] != null && question['question'].isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildContentSection(
-                      text: question['question'],
-                      isQuestion: true,
-                      isDarkMode: isDarkMode,
-                      primaryColor: primaryColor,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Stack(
+        children: [
+          // Main Card - now takes full width
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            color: isDarkMode ? Colors.grey.shade800 : Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Question content
+                  if (question['question'] != null && question['question'].isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildContentSection(
+                        text: question['question'],
+                        isQuestion: true,
+                        isDarkMode: isDarkMode,
+                        primaryColor: primaryColor,
+                      ),
                     ),
-                  ),
 
-                // Question image - IMPROVED VERSION
-                if (hasQuestionImage)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: GestureDetector(
-                      onTap: () {
-                        Get.to(
-                          () => ImageZoomScreen(
-                            imageUrl: question['imageUrl'],
-                            index: index,
-                          ),
-                          transition: Transition.fadeIn,
-                          duration: const Duration(milliseconds: 300),
-                        );
-                      },
-                      child: Hero(
-                        tag: 'image_$index',
-                        child: Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(
-                            minHeight: 200,
-                            maxHeight: 400, // Allow images to be taller if needed
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: isDarkMode
-                                ? Colors.grey.shade900
-                                : Colors.grey.shade100,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
+                  // Question image - IMPROVED VERSION
+                  if (hasQuestionImage)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: GestureDetector(
+                        onTap: () {
+                          Get.to(
+                            () => ImageZoomScreen(
                               imageUrl: question['imageUrl'],
-                              fit: BoxFit.contain, // Show full image without cropping
-                              width: double.infinity,
-                              placeholder: (context, url) => Container(
-                                height: 200,
-                                child: Center(
+                              index: index,
+                            ),
+                            transition: Transition.fadeIn,
+                            duration: const Duration(milliseconds: 300),
+                          );
+                        },
+                        child: Hero(
+                          tag: 'image_$index',
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(
+                              minHeight: 200,
+                              maxHeight: 400, // Allow images to be taller if needed
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: isDarkMode
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade100,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: CachedNetworkImage(
+                                imageUrl: question['imageUrl'],
+                                fit: BoxFit.contain, // Show full image without cropping
+                                width: double.infinity,
+                                placeholder: (context, url) => Container(
+                                  height: 200,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(color: primaryColor),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Loading image...',
+                                          style: TextStyle(
+                                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  height: 200,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      CircularProgressIndicator(color: primaryColor),
+                                      Icon(
+                                        Icons.broken_image_outlined,
+                                        color: Get.theme.colorScheme.error,
+                                        size: 48,
+                                      ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Loading image...',
+                                        'Failed to load image',
                                         style: TextStyle(
-                                          color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                                          color: Get.theme.colorScheme.error,
                                           fontSize: 12,
                                         ),
                                       ),
@@ -476,86 +429,115 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                                   ),
                                 ),
                               ),
-                              errorWidget: (context, url, error) => Container(
-                                height: 200,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.broken_image_outlined,
-                                      color: Get.theme.colorScheme.error,
-                                      size: 48,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Failed to load image',
-                                      style: TextStyle(
-                                        color: Get.theme.colorScheme.error,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                // Answer reveal section with toggle
-                Obx(() => _buildAnswerSection(
-                  index: index,
-                  question: question,
-                  isDarkMode: isDarkMode,
-                  primaryColor: primaryColor,
-                )),
-              ],
+                  // Answer reveal section with toggle
+                  Obx(() => _buildAnswerSection(
+                    index: index,
+                    question: question,
+                    isDarkMode: isDarkMode,
+                    primaryColor: primaryColor,
+                  )),
+                ],
+              ),
             ),
           ),
-        ),
-        
-        // Enhanced zoom icon overlay (only show if question has image)
-        if (hasQuestionImage)
+          
+          // Question Number - positioned at top left corner of card
           Positioned(
-            top: 8,
-            right: 8, // Changed from left to right for better visibility
+            top: -8,
+            left: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.orange.shade400,
+                    Colors.orange.shade600,
+                  ],
+                ),
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 6,
+                    color: Colors.orange.withOpacity(0.4),
+                    blurRadius: 8,
+                    spreadRadius: 1,
                     offset: const Offset(0, 2),
                   ),
                 ],
+                border: Border.all(
+                  color: isDarkMode ? Colors.grey.shade800 : Colors.white,
+                  width: 2,
+                ),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.zoom_in,
+              child: Center(
+                child: Text(
+                  "${index + 1}",
+                  style: const TextStyle(
                     color: Colors.white,
-                    size: 16,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        offset: Offset(1, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Tap to zoom',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-      ],
+          
+          // Enhanced zoom icon overlay (only show if question has image)
+          if (hasQuestionImage)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.zoom_in,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Tap to zoom',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -580,7 +562,7 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Answer reveal button
+        // Answer reveal button with faint green background
         Container(
           width: double.infinity,
           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -588,15 +570,19 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
             onPressed: () => _toggleAnswerVisibility(index),
             style: ElevatedButton.styleFrom(
               backgroundColor: isVisible 
-                  ? primaryColor.withOpacity(0.8) 
-                  : isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+                  ? Colors.green.withOpacity(0.3) // Faint green when showing answer
+                  : Colors.green.withOpacity(0.1), // Very faint green when hidden
               foregroundColor: isVisible 
-                  ? Colors.white 
-                  : isDarkMode ? Colors.white : Colors.black87,
+                  ? Colors.green.shade700
+                  : Colors.green.shade600,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
+                side: BorderSide(
+                  color: Colors.green.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
             ),
             icon: Icon(

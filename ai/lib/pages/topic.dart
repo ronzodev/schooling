@@ -20,17 +20,16 @@ class _TopicListScreenState extends State<TopicListScreen> {
   late final PageController _controller;
   late double _currentPage;
   final TopicController topicController = Get.put(TopicController());
-  // Removed screenHeight initialization here; use MediaQuery in build method instead.
 
   final List<List<Color>> gradientPalette = [
-    [Color(0xFF667eea), Color(0xFF764ba2)],
-    [Color(0xFFf093fb), Color(0xFFf5576c)],
-    [Color(0xFF4facfe), Color(0xFF00f2fe)],
-    [Color(0xFF43e97b), Color(0xFF38f9d7)],
-    [Color(0xFFfa709a), Color(0xFFfee140)],
-    [Color(0xFF30cfd0), Color(0xFFa8edea)],
-    [Color(0xFF667eea), Color(0xFF764ba2)],
-    [Color(0xFFffeaa7), Color(0xFFfab1a0)],
+    [const Color(0xFF667eea),const Color(0xFF764ba2)],
+    [const Color(0xFFf093fb),const  Color(0xFFf5576c)],
+    [const Color(0xFF4facfe),const Color(0xFF00f2fe)],
+    [const Color(0xFF43e97b),const Color(0xFF38f9d7)],
+    [const Color(0xFFfa709a),const Color(0xFFfee140)],
+    [const Color(0xFF30cfd0),const Color(0xFFa8edea)],
+    [const Color(0xFF667eea),const Color(0xFF764ba2)],
+    [const Color(0xFFffeaa7),const Color(0xFFfab1a0)],
   ];
 
   @override
@@ -60,10 +59,9 @@ class _TopicListScreenState extends State<TopicListScreen> {
 
   @override
   Widget build(BuildContext context) {
-   
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      resizeToAvoidBottomInset: false,  // Prevents resize when keyboard appears
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
@@ -203,17 +201,15 @@ class _TopicCard extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    final cardWidth = math.min(screenWidth * 0.85, 350.0);
-    final cardHeight = math.min(
-      math.max(screenHeight * 0.25, 150.0), // minimum height of 150
-      220.0, // maximum height of 220
-    );
+    // Fixed card dimensions for consistency
+    final cardWidth = 320.0; // Fixed width instead of responsive
+    final cardHeight = 220.0; // Fixed height instead of responsive
 
     return Container(
       width: cardWidth,
       height: cardHeight,
-      margin: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.05,
+      margin: const EdgeInsets.symmetric(
+        horizontal: 20,
         vertical: 8,
       ),
       child: ClipRRect(
@@ -250,59 +246,90 @@ class _TopicCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // centers vertically
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.auto_stories_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              topic['title'] ?? 'Topic',
-              style: TextStyle(
-                fontSize: isFocused ? 20 : 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                height: 1.2,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (isFocused) ...[
-              const SizedBox(height: 8),
-              Row( mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        children: [
+          // Main content with guaranteed centering
+          SizedBox(
+            width: width,
+            height: height,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
                 children: [
-                  Icon(
-                    Icons.touch_app_rounded,
-                    size: 16,
-                    color: Colors.white.withOpacity(0.8),
+                  // Icon container - fixed size
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.auto_stories_rounded,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Tap to explore',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.8),
+                  
+                  const SizedBox(height: 16), // Fixed spacing
+                  
+                  // Text with explicit centering and constraints
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      alignment: Alignment.center, // Force center alignment
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: width - 40, // Account for padding
+                            maxHeight: height - 130, // Account for icon + spacing + padding
+                          ),
+                          child: Text(
+                            topic['title'] ?? 'Topic',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: isFocused ? 18 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              height: 1.3,
+                            ),
+                            maxLines: 4,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+          
+          // Action hint overlay - positioned at top-left corner
+          if (isFocused)
+            Positioned(
+              top: 12,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.touch_app_rounded,
+                  size: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -336,33 +363,60 @@ class _TopicCard extends StatelessWidget {
                     : [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.05)],
               ),
             ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.flip_to_front_rounded,
-                    size: 40,
-                    color: isDarkMode
-                        ? Colors.white.withOpacity(0.7)
-                        : Colors.black.withOpacity(0.7),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    topic['title'] ?? 'Topic',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Icon(
+                      Icons.flip_to_front_rounded,
+                      size: 50, // Fixed size matching front card
                       color: isDarkMode
-                          ? Colors.white.withOpacity(0.9)
-                          : Colors.black.withOpacity(0.9),
-                      height: 1.3,
+                          ? Colors.white.withOpacity(0.7)
+                          : Colors.black.withOpacity(0.7),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    
+                    const SizedBox(height: 16), // Fixed spacing matching front
+                    
+                    // Text with explicit centering - same approach as front
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        alignment: Alignment.center, // Force center alignment
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: width - 40, // Account for padding
+                              maxHeight: height - 130, // Account for icon + spacing + padding
+                            ),
+                            child: Text(
+                              topic['title'] ?? 'Topic',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: isDarkMode
+                                    ? Colors.white.withOpacity(0.9)
+                                    : Colors.black.withOpacity(0.9),
+                                height: 1.3,
+                              ),
+                              maxLines: 4,
+                              softWrap: true,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
