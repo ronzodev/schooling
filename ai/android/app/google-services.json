@@ -23,6 +23,63 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612520926911:android:baba6c17e154db2c53b00a",
+        "android_client_info": {
+          "package_name": "com.example.sub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612520926911:android:629a3d71ed04f45553b00a",
+        "android_client_info": {
+          "package_name": "com.example.videoup"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612520926911:android:e950eade4ba216f353b00a",
+        "android_client_info": {
+          "package_name": "com.ronzodev.solveit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

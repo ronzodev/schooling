@@ -1,4 +1,4 @@
-package com.example.ai
+package com.ronzodev.solveit
 
 import io.flutter.embedding.android.FlutterActivity
 

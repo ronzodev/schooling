@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Ai',
+      title: 'SolveIt',
       theme: ThemeData(primarySwatch: Colors.blue),
       
       home: MainScreen()
@@ -42,24 +42,24 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Firestore Setup')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            await populateFirestore(); // Call the function to populate Firestore
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Firestore database populated!'))
-            );
-          },
-          child: const Text("Populate Firestore"),
-        ),
-      ),
-    );
-  }
-}
+// class HomeScreen extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('S')),
+//       body: Center(
+//         child: ElevatedButton(
+//           onPressed: () async {
+//             await populateFirestore(); // Call the function to populate Firestore
+//             ScaffoldMessenger.of(context).showSnackBar(
+//               const SnackBar(content: Text('Firestore database populated!'))
+//             );
+//           },
+//           child: const Text("Populate Firestore"),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 

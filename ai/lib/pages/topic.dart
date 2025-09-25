@@ -198,12 +198,12 @@ class _TopicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    // final screenWidth = MediaQuery.of(context).size.width;
+    // final screenHeight = MediaQuery.of(context).size.height;
 
     // Fixed card dimensions for consistency
-    final cardWidth = 320.0; // Fixed width instead of responsive
-    final cardHeight = 220.0; // Fixed height instead of responsive
+    const cardWidth = 320.0; // Fixed width instead of responsive
+    const cardHeight = 220.0; // Fixed height instead of responsive
 
     return Container(
       width: cardWidth,
