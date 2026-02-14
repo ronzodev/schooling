@@ -4,59 +4,89 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
-class DefaultFirebaseOptions {
+/// Firebase options for the Pamphlet project (courses, topics, questions).
+class PamphletFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
+        'PamphletFirebaseOptions have not been configured for web.',
       );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
-      case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android; // Use Android config for Linux desktop development
       default:
         throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
+          'PamphletFirebaseOptions are not supported for this platform.',
         );
     }
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo',
+    apiKey: 'AIzaSyABwmdF87dOyo3cdRu0bWSVV-aUTUPXDJo',
     appId: '1:612520926911:android:fb6eafd60bddcb4c53b00a',
     messagingSenderId: '612520926911',
     projectId: 'pamphlet-471f2',
     storageBucket: 'pamphlet-471f2.firebasestorage.app',
   );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyABwmdF87dOyo3cdRu0bWSVV-aUTUPXDJo',
+    appId:
+        '1:612520926911:ios:fb6eafd60bddcb4c53b00a', // Update if you have iOS config
+    messagingSenderId: '612520926911',
+    projectId: 'pamphlet-471f2',
+    storageBucket: 'pamphlet-471f2.firebasestorage.app',
+    iosBundleId: 'com.ronzodev.solveit',
+  );
+}
+
+/// Firebase options for the ECZ project (grades, subjects, past papers).
+class EczFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'EczFirebaseOptions have not been configured for web.',
+      );
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.linux:
+        return android; // Use Android config for Linux desktop development
+      default:
+        throw UnsupportedError(
+          'EczFirebaseOptions are not supported for this platform.',
+        );
+    }
+  }
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDZWmjmVBye15hXSMVKHipS90cuUzLTlGw',
+    appId: '1:568458543301:android:fbf70addfcbde0d136f0ac',
+    messagingSenderId: '568458543301',
+    projectId: 'ecz-project',
+    storageBucket: 'ecz-project.appspot.com',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyB-6-6RjUyKGelHtN9Jz7gYeaK6Gzow3hY',
+    appId: '1:568458543301:ios:0608941eda9fe88136f0ac',
+    messagingSenderId: '568458543301',
+    projectId: 'ecz-project',
+    storageBucket: 'ecz-project.appspot.com',
+    iosBundleId: 'com.ronzodev.solveit',
+  );
+}
+
+/// Default [FirebaseOptions] - using Pamphlet as default for the app.
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform =>
+      PamphletFirebaseOptions.currentPlatform;
 }

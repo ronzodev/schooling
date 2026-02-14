@@ -1,10 +1,13 @@
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LinksController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+  // Use Pamphlet Firebase app for links
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+
   // Observable variables
   var isLoading = true.obs;
   var links = <SocialLink>[].obs;
@@ -21,7 +24,7 @@ class LinksController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = '';
-      
+
       QuerySnapshot querySnapshot = await _firestore
           .collection('links')
           .orderBy('order', descending: false) // Optional: order by a field
@@ -100,7 +103,7 @@ class SocialLink {
   // Create SocialLink from Firestore document
   factory SocialLink.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    
+
     return SocialLink(
       id: doc.id,
       platform: data['platform'] ?? '',

@@ -1,44 +1,61 @@
-
-
-import 'package:ai/firbase.dart';
-import 'package:ai/pages/main_screen.dart';
-import 'package:ai/videos/video_subject_list.dart';
+import 'package:ai/controllers/ads_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart' show MobileAds;
 
-import 'solar/solar_system_screen.dart';
-
-
-
+import 'controllers/openAd_controller.dart';
+import 'firebase_options.dart';
+import 'pages/splash_screen.dart';
 
 void main() async {
- 
   WidgetsFlutterBinding.ensureInitialized();
-   
-  
-  await Firebase.initializeApp(); 
-  
-   
+
+  // Lock app to portrait mode
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Initialize default Firebase app (ECZ - the google-services.json is for ECZ)
+  // This app is auto-initialized by google-services.json, so just ensure it exists
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+      options: EczFirebaseOptions.currentPlatform,
+    );
+  }
+
+  // Initialize secondary Firebase app (Pamphlet - for courses, topics, questions)
+  // Check if 'pamphlet' app already exists
+  try {
+    Firebase.app('pamphlet');
+  } catch (e) {
+    // App doesn't exist, so initialize it
+    await Firebase.initializeApp(
+      name: 'pamphlet',
+      options: PamphletFirebaseOptions.currentPlatform,
+    );
+  }
+
+  // Initialize ads controller
+  final adsController = GoogleAdsController.instance;
+  await adsController.initialize();
+
   runApp(MyApp());
-      
 }
 
 class MyApp extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
-      
+    MobileAds.instance.initialize();
+    Get.put(AppOpenController());
+
     return GetMaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SolveIt',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      
-      home: MainScreen()
-      
-       
-       
-    );
+        debugShowCheckedModeBanner: false,
+        title: 'Past Paper Solutions',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: SplashScreen());
   }
 }
 
@@ -61,5 +78,3 @@ class MyApp extends StatelessWidget {
 //     );
 //   }
 // }
-
-

@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "612520926911",
-    "project_id": "pamphlet-471f2",
-    "storage_bucket": "pamphlet-471f2.firebasestorage.app"
+    "project_number": "568458543301",
+    "project_id": "ecz-project",
+    "storage_bucket": "ecz-project.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:612520926911:android:fb6eafd60bddcb4c53b00a",
+        "mobilesdk_app_id": "1:568458543301:android:e36193120412f19936f0ac",
         "android_client_info": {
-          "package_name": "com.example.ai"
+          "package_name": "com.example.a"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+          "current_key": "AIzaSyDZWmjmVBye15hXSMVKHipS90cuUzLTlGw"
         }
       ],
       "services": {
@@ -26,15 +26,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:612520926911:android:baba6c17e154db2c53b00a",
+        "mobilesdk_app_id": "1:568458543301:android:03a8c382181211db36f0ac",
         "android_client_info": {
-          "package_name": "com.example.sub"
+          "package_name": "com.example.paper"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+          "current_key": "AIzaSyDZWmjmVBye15hXSMVKHipS90cuUzLTlGw"
         }
       ],
       "services": {
@@ -45,15 +45,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:612520926911:android:629a3d71ed04f45553b00a",
+        "mobilesdk_app_id": "1:568458543301:android:a092e29531f4d89c36f0ac",
         "android_client_info": {
-          "package_name": "com.example.videoup"
+          "package_name": "com.ronzodev.eczpastpapers"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+          "current_key": "AIzaSyDZWmjmVBye15hXSMVKHipS90cuUzLTlGw"
         }
       ],
       "services": {
@@ -64,7 +64,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:612520926911:android:e950eade4ba216f353b00a",
+        "mobilesdk_app_id": "1:568458543301:android:fbf70addfcbde0d136f0ac",
         "android_client_info": {
           "package_name": "com.ronzodev.solveit"
         }
@@ -72,7 +72,26 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo"
+          "current_key": "AIzaSyDZWmjmVBye15hXSMVKHipS90cuUzLTlGw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:568458543301:android:6a2686eec38d6f0d36f0ac",
+        "android_client_info": {
+          "package_name": "com.ronzodev.zamexpapers"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZWmjmVBye15hXSMVKHipS90cuUzLTlGw"
         }
       ],
       "services": {

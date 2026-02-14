@@ -1,9 +1,13 @@
+import 'package:ai/controllers/ads_controller.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:ai/widgets/lined_paper_painter.dart';
 import 'package:ai/pages/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_tex/flutter_tex.dart';
 import '../controllers/question_controller.dart';
+import '../theme/app_theme.dart';
 import 'view_question.dart';
 
 class QuestionListScreen extends StatefulWidget {
@@ -20,10 +24,14 @@ class QuestionListScreen extends StatefulWidget {
 class _QuestionListScreenState extends State<QuestionListScreen> {
   final QuestionController questionController = Get.put(QuestionController());
   final ScrollController _scrollController = ScrollController();
-  
-  // Add these variables for answer visibility control
+
+  // Answer visibility control
   final RxBool showAllAnswers = false.obs;
   final RxSet<int> visibleAnswers = <int>{}.obs;
+
+  // Global answer reveal counter
+  int _globalAnswerRevealCount = 0;
+  final GoogleAdsController _adsController = GoogleAdsController.instance;
 
   @override
   void initState() {
@@ -37,7 +45,18 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
         questionController.setupRealtimeQuestions(
             widget.courseId, widget.topicId);
       }
+      _initializeAds();
     });
+  }
+
+  Future<void> _initializeAds() async {
+    await _adsController.initialize();
+    _adsController.onInterstitialClosed = () {
+      debugPrint('📱 Interstitial ad closed');
+    };
+    _adsController.onInterstitialFailed = () {
+      debugPrint('❌ Interstitial ad failed');
+    };
   }
 
   @override
@@ -56,486 +75,524 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
     }
   }
 
-  // Toggle individual answer visibility
   void _toggleAnswerVisibility(int index) {
     if (visibleAnswers.contains(index)) {
       visibleAnswers.remove(index);
+    } else {
+      _globalAnswerRevealCount++;
+      if (_globalAnswerRevealCount == 2) {
+        _showInterstitialAdThenReveal(index);
+        _globalAnswerRevealCount = 0;
+      } else {
+        visibleAnswers.add(index);
+      }
+    }
+  }
+
+  void _showInterstitialAdThenReveal(int index) {
+    if (_adsController.isInterstitialReady()) {
+      _adsController.onInterstitialClosed = () {
+        visibleAnswers.add(index);
+        _adsController.onInterstitialClosed = () {};
+      };
+      _adsController.showInterstitialAd();
     } else {
       visibleAnswers.add(index);
     }
   }
 
-  // Toggle all answers visibility
-  void _toggleAllAnswers() {
-    showAllAnswers.value = !showAllAnswers.value;
-    if (showAllAnswers.value) {
-      // Show all answers
-      visibleAnswers.clear();
-      for (int i = 0; i < questionController.questions.length; i++) {
-        visibleAnswers.add(i);
-      }
-    } else {
-      // Hide all answers
-      visibleAnswers.clear();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDarkMode ? Colors.deepPurple : Colors.indigo;
-
     return Scaffold(
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          "Questions",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar
+              _buildAppBar(),
+
+              // Questions list
+              Expanded(
+                child: Obx(() => _buildQuestionsList()),
+              ),
+            ],
           ),
         ),
-        centerTitle: true,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDarkMode
-                  ? [Colors.deepPurple.shade900, Colors.indigo.shade900]
-                  : [Colors.deepPurple.shade700, Colors.indigo.shade700],
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Back button
+          GestureDetector(
+            onTap: () => Get.back(),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBackground.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppTheme.textPrimary,
+                size: 20,
+              ),
             ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home, color: Colors.white),
-            onPressed: () => Get.offAll(MainScreen()),
-          ),
-          
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () => _showZoomHelpDialog(),
-          ),
-          
-          // Add toggle all answers button
-          Obx(() => IconButton(
-            icon: Icon(
-              showAllAnswers.value ? Icons.visibility_off : Icons.visibility,
-              color: Colors.white,
+
+          const Spacer(),
+
+          // Title
+          const Text(
+            'Questions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
             ),
-            tooltip: showAllAnswers.value ? 'Hide All Answers' : 'Show All Answers',
-            onPressed: _toggleAllAnswers,
-          )),
+          ),
+
+          const Spacer(),
+
+          // Home button
+          GestureDetector(
+            onTap: () => Get.offAll(MainScreen()),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBackground.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: const Icon(
+                Icons.home_rounded,
+                color: AppTheme.accentBlue,
+                size: 20,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Help button
+          GestureDetector(
+            onTap: _showZoomHelpDialog,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBackground.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: const Icon(
+                Icons.help_outline_rounded,
+                color: AppTheme.accentPink,
+                size: 20,
+              ),
+            ),
+          ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDarkMode
-              ? LinearGradient(
-                  colors: [Colors.grey.shade900, Colors.grey.shade800],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                )
-              : LinearGradient(
-                  colors: [Colors.grey.shade50, Colors.grey.shade100],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-        ),
+    );
+  }
+
+  Widget _buildQuestionsList() {
+    // Loading state
+    if (questionController.isLoading.value &&
+        questionController.questions.isEmpty) {
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Questions list
-            Expanded(
-              child: Obx(() {
-                if (questionController.isLoading.value &&
-                    questionController.questions.isEmpty) {
-                  return Center(
-                    child: CircularProgressIndicator(color: primaryColor),
-                  );
-                }
-
-                if (questionController.errorMessage.isNotEmpty &&
-                    questionController.questions.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Get.theme.colorScheme.error,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          questionController.errorMessage.value,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                          ),
-                          onPressed: () => questionController.setupRealtimeQuestions(
-                              widget.courseId, widget.topicId),
-                          child: const Text(
-                            "Try Again",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (questionController.questions.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.quiz_outlined,
-                          size: 48,
-                          color: isDarkMode ? Colors.grey.shade400 : Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "No questions available yet",
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: isDarkMode ? Colors.grey.shade300 : Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Check back later or contact your instructor",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDarkMode
-                                ? Colors.grey.shade500
-                                : Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                  itemCount: questionController.questions.length +
-                      (questionController.hasMore.value ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == questionController.questions.length) {
-                      return _buildLoadMoreIndicator(primaryColor);
-                    }
-
-                    return _buildQuestionCard(
-                      context: context,
-                      index: index,
-                      question: questionController.questions[index],
-                      isDarkMode: isDarkMode,
-                      primaryColor: primaryColor,
-                    );
-                  },
-                );
-              }),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBackground.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const CircularProgressIndicator(
+                color: AppTheme.accentBlue,
+                strokeWidth: 3,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Loading questions...',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
-      ),
+      );
+    }
+
+    // Error state
+    if (questionController.errorMessage.isNotEmpty &&
+        questionController.questions.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: AppTheme.error,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                questionController.errorMessage.value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => questionController.setupRealtimeQuestions(
+                    widget.courseId, widget.topicId),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try Again'),
+                style: AppTheme.primaryButtonStyle,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Empty state
+    if (questionController.questions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBackground.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.quiz_rounded,
+                size: 48,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No questions available yet',
+              style: TextStyle(
+                fontSize: 18,
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Check back later for new content',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Questions list
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: questionController.questions.length +
+          (questionController.hasMore.value ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == questionController.questions.length) {
+          return _buildLoadMoreIndicator();
+        }
+        return _buildQuestionCard(
+          index: index,
+          question: questionController.questions[index],
+        );
+      },
     );
   }
 
-  // zoom help function
-  void _showZoomHelpDialog() {
-    Get.defaultDialog(
-      title: 'Study Tips',
-      titleStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-      middleText: 'Study Mode Features:\n\n'
-           '👁️ Toggle answers visibility to test yourself\n'
-           '🔍 Tap images to zoom for better viewing\n'
-           '📝 Text questions cannot be zoomed (fixed text)\n'
-           '💡 Use the eye icon to show/hide all answers\n'
-           '🎯 Individual answers can be toggled by tapping the reveal button',
-      middleTextStyle: const TextStyle(fontSize: 14, color: Colors.white),
-      textConfirm: 'Got it!',
-      confirmTextColor: Colors.white,
-      onConfirm: () => Get.back(),
-      buttonColor: Colors.blue,
-      backgroundColor: Colors.grey[900]!,
-      titlePadding: const EdgeInsets.all(20),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-    );
-  }
-
-  Widget _buildLoadMoreIndicator(Color primaryColor) {
+  Widget _buildLoadMoreIndicator() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(24),
       child: Center(
         child: questionController.isLoadingMore.value
-            ? CircularProgressIndicator(
-                color: Colors.indigo.shade900,
+            ? const CircularProgressIndicator(
+                color: AppTheme.accentBlue,
+                strokeWidth: 3,
               )
-            : questionController.hasMore.value
-                ? ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orangeAccent
+            : Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBackground.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'More questions coming soon! 🎉',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 14,
                   ),
-                    onPressed: () => questionController.loadMoreQuestions(),
-                    child: const Text("Loading more...", style: TextStyle(color: Colors.white),),
-                  )
-                : Text(
-                    "No more questions, more coming soon sit tight",
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
+                ),
+              ),
       ),
     );
   }
 
   Widget _buildQuestionCard({
-    required BuildContext context,
     required int index,
     required Map<String, dynamic> question,
-    required bool isDarkMode,
-    required Color primaryColor,
   }) {
-    // Check if question has an image
-    final hasQuestionImage = question['imageUrl'] != null && question['imageUrl'].isNotEmpty;
+    final hasQuestionImage = question['imageUrl'] != null &&
+        question['imageUrl'].toString().isNotEmpty;
+    final gradient =
+        AppTheme.colorfulGradients[index % AppTheme.colorfulGradients.length];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // Main Card - now takes full width
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+          // Main Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration:
+                AppTheme.paperDecoration, // switched to paper decoration
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Add top padding for question number
+                const SizedBox(height: 8),
+
+                // Question text content
+                if (question['question'] != null &&
+                    question['question'].toString().isNotEmpty)
+                  _buildContentSection(
+                    text: question['question'],
+                    isQuestion: true,
+                  ),
+
+                // Question image - MUCH LARGER
+                if (hasQuestionImage)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _buildQuestionImage(question, index),
+                  ),
+
+                // Answer section
+                Obx(() => _buildAnswerSection(
+                      index: index,
+                      question: question,
+                      gradient: gradient,
+                    )),
+              ],
             ),
-            color: isDarkMode ? Colors.grey.shade800 : Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+
+          // Question number badge
+          Positioned(
+            top: -12,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: gradient.colors.first.withOpacity(0.5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Question content
-                  if (question['question'] != null && question['question'].isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildContentSection(
-                        text: question['question'],
-                        isQuestion: true,
-                        isDarkMode: isDarkMode,
-                        primaryColor: primaryColor,
-                      ),
+                  const Icon(
+                    Icons.quiz_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Q${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
-
-                  // Question image - IMPROVED VERSION
-                  if (hasQuestionImage)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: GestureDetector(
-                        onTap: () {
-                          Get.to(
-                            () => ImageZoomScreen(
-                              imageUrl: question['imageUrl'],
-                              index: index,
-                            ),
-                            transition: Transition.fadeIn,
-                            duration: const Duration(milliseconds: 300),
-                          );
-                        },
-                        child: Hero(
-                          tag: 'image_$index',
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(
-                              minHeight: 200,
-                              maxHeight: 400, // Allow images to be taller if needed
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: isDarkMode
-                                  ? Colors.grey.shade900
-                                  : Colors.grey.shade100,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CachedNetworkImage(
-                                imageUrl: question['imageUrl'],
-                                fit: BoxFit.contain, // Show full image without cropping
-                                width: double.infinity,
-                                placeholder: (context, url) => Container(
-                                  height: 200,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        CircularProgressIndicator(color: primaryColor),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Loading image...',
-                                          style: TextStyle(
-                                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  height: 200,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.broken_image_outlined,
-                                        color: Get.theme.colorScheme.error,
-                                        size: 48,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Failed to load image',
-                                        style: TextStyle(
-                                          color: Get.theme.colorScheme.error,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Answer reveal section with toggle
-                  Obx(() => _buildAnswerSection(
-                    index: index,
-                    question: question,
-                    isDarkMode: isDarkMode,
-                    primaryColor: primaryColor,
-                  )),
+                  ),
                 ],
               ),
             ),
           ),
-          
-          // Question Number - positioned at top left corner of card
-          Positioned(
-            top: -8,
-            left: 8,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.orange.shade400,
-                    Colors.orange.shade600,
-                  ],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.orange.withOpacity(0.4),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 2),
+
+          // Question Image Zoom Badge (Top Right)
+          if (hasQuestionImage)
+            Positioned(
+              top: -12,
+              right: 16,
+              child: GestureDetector(
+                onTap: () {
+                  Get.to(
+                    () => ImageZoomScreen(
+                      imageUrl: question['imageUrl'],
+                      index: index,
+                    ),
+                    transition: Transition.fadeIn,
+                    duration: const Duration(milliseconds: 300),
+                  );
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: gradient.colors.first.withOpacity(0.5),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-                border: Border.all(
-                  color: isDarkMode ? Colors.grey.shade800 : Colors.white,
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  "${index + 1}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black26,
-                        offset: Offset(1, 1),
-                        blurRadius: 2,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.zoom_in_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Zoom',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionImage(Map<String, dynamic> question, int index) {
+    return GestureDetector(
+      onTap: () {
+        Get.to(
+          () => ImageZoomScreen(
+            imageUrl: question['imageUrl'],
+            index: index,
           ),
-          
-          // Enhanced zoom icon overlay (only show if question has image)
-          if (hasQuestionImage)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          transition: Transition.fadeIn,
+          duration: const Duration(milliseconds: 300),
+        );
+      },
+      child: Stack(
+        children: [
+          Hero(
+            tag: 'image_$index',
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.transparent, // Changed to transparent
+                border: Border.all(
+                  color: Colors.black.withOpacity(0.05),
+                  width: 1,
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.zoom_in,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Tap to zoom',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CachedNetworkImage(
+                  imageUrl: question['imageUrl'],
+                  fit: BoxFit.fitWidth, // fitWidth to show full content
+                  width: double.infinity,
+                  placeholder: (context, url) => Container(
+                    height: 200, // Default height for loader
+                    color: Colors.black.withOpacity(0.03),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            color: AppTheme.accentBlue,
+                            strokeWidth: 3,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Loading image...',
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 200,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_rounded,
+                          color: AppTheme.error,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Failed to load image',
+                          style: TextStyle(
+                            color: AppTheme.error,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -544,263 +601,450 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
   Widget _buildAnswerSection({
     required int index,
     required Map<String, dynamic> question,
-    required bool isDarkMode,
-    required Color primaryColor,
+    required LinearGradient gradient,
   }) {
-    final hasAnswer = (question['correctAnswer'] != null && 
-                      question['correctAnswer'].isNotEmpty) ||
-                     (question['correctAnswerImage'] != null && 
-                      question['correctAnswerImage'].isNotEmpty);
-    
-    final hasExplanation = question['explanation'] != null && 
-                          question['explanation'].isNotEmpty;
-    
+    final hasAnswer = (question['correctAnswer'] != null &&
+            question['correctAnswer'].toString().isNotEmpty) ||
+        (question['correctAnswerImage'] != null &&
+            question['correctAnswerImage'].toString().isNotEmpty);
+    final hasExplanation = question['explanation'] != null &&
+        question['explanation'].toString().isNotEmpty;
+
     if (!hasAnswer && !hasExplanation) return const SizedBox.shrink();
-    
+
     final isVisible = visibleAnswers.contains(index);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Answer reveal button with faint green background
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          child: ElevatedButton.icon(
-            onPressed: () => _toggleAnswerVisibility(index),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isVisible 
-                  ? Colors.green.withOpacity(0.3) // Faint green when showing answer
-                  : Colors.green.withOpacity(0.1), // Very faint green when hidden
-              foregroundColor: isVisible 
-                  ? Colors.green.shade700
-                  : Colors.green.shade600,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(
-                  color: Colors.green.withOpacity(0.3),
-                  width: 1,
-                ),
+        const SizedBox(height: 20),
+
+        // Reveal Answer Button - Large and prominent
+        GestureDetector(
+          onTap: () => _toggleAnswerVisibility(index),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              gradient: isVisible
+                  ? LinearGradient(
+                      colors: [
+                        AppTheme.accentGreen.withOpacity(0.3),
+                        AppTheme.accentGreen.withOpacity(0.1),
+                      ],
+                    )
+                  : LinearGradient(
+                      colors: [
+                        gradient.colors.first.withOpacity(0.2),
+                        gradient.colors.last.withOpacity(0.1),
+                      ],
+                    ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isVisible
+                    ? AppTheme.accentGreen.withOpacity(0.3)
+                    : gradient.colors.first.withOpacity(0.3),
+                width: 1,
               ),
             ),
-            icon: Icon(
-              isVisible ? Icons.visibility_off : Icons.visibility,
-              size: 20,
-            ),
-            label: Text(
-              isVisible ? 'Hide Answer' : 'Reveal Answer',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isVisible
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color:
+                      isVisible ? AppTheme.accentGreen : gradient.colors.first,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  isVisible ? 'Hide Answer' : 'Reveal Answer',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isVisible
+                        ? AppTheme.accentGreen
+                        : gradient.colors.first,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        
-        // Answer content (shown when visible)
-        AnimatedContainer(
+
+        // Answer content
+        AnimatedSize(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          height: isVisible ? null : 0,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 300),
-            opacity: isVisible ? 1.0 : 0.0,
-            child: isVisible ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Correct answer
-                if (hasAnswer) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16, bottom: 8),
-                    child: Text(
-                      "Correct Answer",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(255, 89, 172, 240),
-                      ),
-                    ),
+          child: isVisible
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: _buildAnswerContent(question, index),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnswerContent(Map<String, dynamic> question, int index) {
+    final hasTextAnswer = question['correctAnswer'] != null &&
+        question['correctAnswer'].toString().isNotEmpty;
+    final hasImageAnswer = question['correctAnswerImage'] != null &&
+        question['correctAnswerImage'].toString().isNotEmpty;
+    final hasExplanation = question['explanation'] != null &&
+        question['explanation'].toString().isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.accentGreen.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.accentGreen.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Answer header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentGreen.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppTheme.accentGreen,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Solutions',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.accentGreen,
                   ),
-                  if (question['correctAnswer'] != null &&
-                      question['correctAnswer'].isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildContentSection(
-                        text: question['correctAnswer'],
-                        isQuestion: false,
-                        isDarkMode: isDarkMode,
+                  overflow: TextOverflow.visible,
+                ),
+              ),
+              if (hasImageAnswer) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    Get.to(
+                      () => ImageZoomScreen(
+                        imageUrl: question['correctAnswerImage'],
+                        index: index + 1000,
                       ),
+                      transition: Transition.fadeIn,
+                    );
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentGreen.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  if (question['correctAnswerImage'] != null &&
-                      question['correctAnswerImage'].isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: GestureDetector(
-                        onTap: () {
-                          Get.to(
-                            () => ImageZoomScreen(
-                              imageUrl: question['correctAnswerImage'],
-                              index: index + 1000,
-                            ),
-                            transition: Transition.fadeIn,
-                            duration: const Duration(milliseconds: 300),
-                          );
-                        },
-                        child: Hero(
-                          tag: 'image_${index + 1000}',
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(
-                              minHeight: 150,
-                              maxHeight: 300, // Improved constraints for answer images
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: isDarkMode
-                                  ? Colors.grey.shade900
-                                  : Colors.grey.shade100,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CachedNetworkImage(
-                                imageUrl: question['correctAnswerImage'],
-                                fit: BoxFit.contain, // Keep as contain for answer images
-                                width: double.infinity,
-                                placeholder: (context, url) => Container(
-                                  height: 150,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        CircularProgressIndicator(color: primaryColor),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Loading answer image...',
-                                          style: TextStyle(
-                                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  height: 150,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.broken_image_outlined,
-                                        color: Get.theme.colorScheme.error,
-                                        size: 36,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Failed to load answer image',
-                                        style: TextStyle(
-                                          color: Get.theme.colorScheme.error,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.zoom_in_rounded,
+                          color: AppTheme.accentGreen,
+                          size: 16,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Zoom',
+                          style: TextStyle(
+                            color: AppTheme.accentGreen,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                         ),
-                      ),
-                    ),
-                ],
-
-                // Explanation
-                if (hasExplanation) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      "Explanation",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
+                      ],
                     ),
                   ),
+                ),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Text answer
+          if (hasTextAnswer)
+            _buildContentSection(
+              text: question['correctAnswer'],
+              isQuestion: false,
+            ),
+
+          // Image answer
+          if (hasImageAnswer)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _buildAnswerImage(question['correctAnswerImage'], index),
+            ),
+
+          // Explanation
+          if (hasExplanation) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.accentBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.accentBlue.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_rounded,
+                        color: AppTheme.accentYellow,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Explanation',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.accentBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   _buildContentSection(
                     text: question['explanation'],
                     isQuestion: false,
-                    isDarkMode: isDarkMode,
                   ),
                 ],
-              ],
-            ) : const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerImage(String imageUrl, int index) {
+    return GestureDetector(
+      onTap: () {
+        Get.to(
+          () => ImageZoomScreen(
+            imageUrl: imageUrl,
+            index: index + 1000,
           ),
+          transition: Transition.fadeIn,
+        );
+      },
+      child: Hero(
+        tag: 'image_${index + 1000}',
+        child: Stack(
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.transparent, // Paper design: transparent
+                border: Border.all(
+                  color: AppTheme.accentGreen.withOpacity(0.3),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit:
+                      BoxFit.fitWidth, // Paper design: fitWidth to show content
+                  width: double.infinity,
+                  placeholder: (context, url) => Container(
+                    height: 200,
+                    color: Colors.black.withOpacity(0.03), // Light placeholder
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.accentGreen,
+                        strokeWidth: 3,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 150,
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_rounded,
+                          color: AppTheme.error,
+                          size: 36,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Failed to load image',
+                          style: TextStyle(
+                            color: AppTheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildContentSection({
     required String text,
     required bool isQuestion,
-    required bool isDarkMode,
-    Color? primaryColor,
   }) {
+    final containsLatex = text.trim().contains(r'$');
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isQuestion
-            ? (primaryColor ?? Colors.blue).withOpacity(isDarkMode ? 0.2 : 0.1)
-            : isDarkMode
-                ? Colors.grey.shade900
-                : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: CustomPaint(
+        painter: LinedPaperPainter(
+          lineHeight: 40, // Match text height
+          lineColor: AppTheme.accentBlue.withOpacity(0.3),
+          midlineColor: Colors.transparent, // Simple lines for readability
+          redLineColor: Colors.transparent,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: containsLatex
+              ? TeXView(
+                  child: TeXViewDocument(
+                    '''
+                    <p style="font-family: 'Patrick Hand', cursive; font-size:${isQuestion ? 24 : 20}px; color: black; line-height: 2.0; padding: 10px;">${text.replaceAll(r'$', '')}</p>
+                    ''',
+                    style: const TeXViewStyle(
+                      textAlign: TeXViewTextAlign.left,
+                      padding: TeXViewPadding.all(6),
+                    ),
+                  ),
+                  style: TeXViewStyle(
+                    backgroundColor: Colors.transparent,
+                    borderRadius: const TeXViewBorderRadius.all(10),
+                    elevation: 0,
+                  ),
+                  loadingWidgetBuilder: (context) => const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.accentBlue,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                )
+              : SelectableText(
+                  text,
+                  style: GoogleFonts.patrickHand(
+                    fontSize: isQuestion ? 24 : 20, // Larger handwritten text
+                    height: 2.0, // Match line height (20 * 2.0 = 40)
+                    fontWeight:
+                        isQuestion ? FontWeight.w600 : FontWeight.normal,
+                    color: Colors.black87,
+                  ),
+                ),
+        ),
       ),
-      child: text.trim().contains(r'$$')
-          ? TeXView(
-              child: TeXViewDocument(
-                '''
-                <p style="font-size:16px; color: ${isDarkMode ? 'white' : 'black'};">${text.replaceAll(r'$$', '')}</p>
-                ''',
-                style: const TeXViewStyle(
-                  textAlign: TeXViewTextAlign.left,
-                  padding: TeXViewPadding.all(6),
+    );
+  }
+
+  void _showZoomHelpDialog() {
+    Get.dialog(
+      Dialog(
+        backgroundColor: AppTheme.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentBlue.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.help_outline_rounded,
+                  color: AppTheme.accentBlue,
+                  size: 32,
                 ),
               ),
-              style: TeXViewStyle(
-                backgroundColor:
-                    isDarkMode ? Colors.grey.shade900 : Colors.white,
-                borderRadius: const TeXViewBorderRadius.all(10),
-                elevation: 0,
-                border: const TeXViewBorder.all(TeXViewBorderDecoration(
-                  borderColor: Colors.transparent,
-                  borderWidth: 0,
-                )),
-              ),
-              loadingWidgetBuilder: (context) => Center(
-                child: CircularProgressIndicator(
-                  color: primaryColor ?? Colors.blue,
+              const SizedBox(height: 20),
+              const Text(
+                'Study Tips',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
                 ),
               ),
-            )
-          : SelectableText(
+              const SizedBox(height: 20),
+              _buildHelpItem(
+                  Icons.visibility_rounded, 'Toggle answers to test yourself'),
+              _buildHelpItem(Icons.zoom_in_rounded,
+                  'Tap images to zoom for better viewing'),
+              _buildHelpItem(
+                  Icons.touch_app_rounded, 'Individual answers can be toggled'),
+              _buildHelpItem(Icons.lightbulb_rounded,
+                  'Read explanations to understand better'),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Get.back(),
+                style: AppTheme.primaryButtonStyle,
+                child: const Text('Got it!'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.accentBlue, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
               text,
-              style: TextStyle(
-                fontSize: isQuestion ? 18 : 16,
-                fontWeight: isQuestion ? FontWeight.w600 : FontWeight.normal,
-                color: isDarkMode
-                    ? (isQuestion ? Colors.white : Colors.grey.shade300)
-                    : (isQuestion ? Colors.black87 : Colors.black54),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 }

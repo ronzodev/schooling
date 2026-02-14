@@ -1,20 +1,24 @@
-
-import 'package:ai/videos/video_subject_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import '../controllers/course_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../drawer/drawer_widget.dart';
+import '../theme/app_theme.dart';
+import '../utils/icon_helper.dart';
 import 'topic.dart';
-import 'package:ionicons/ionicons.dart';
+import 'category_header_delegate.dart';
+import '../solar/solar_system_screen.dart';
+import 'notes_screen.dart';
 
-class CourseListScreen extends StatelessWidget  {
-  final List<Color> cardColors = [
-    const Color(0xFF3B82F6), // Blue
-    const Color(0xFFEF4444), // Red
-    const Color(0xFFF97316), // Orange
-    const Color.fromARGB(255, 102, 102, 136), // Gray
+class CourseListScreen extends StatelessWidget {
+  // Playful gradient colors for course cards
+  final List<LinearGradient> cardGradients = [
+    AppTheme.blueGradient,
+    AppTheme.pinkGradient,
+    AppTheme.purpleGradient,
+    AppTheme.greenGradient,
+    AppTheme.orangeGradient,
   ];
 
   CourseListScreen({super.key});
@@ -22,160 +26,514 @@ class CourseListScreen extends StatelessWidget  {
   @override
   Widget build(BuildContext context) {
     final CourseController courseController = Get.put(CourseController());
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     final ThemeController themeController = Get.put(ThemeController());
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
     return Scaffold(
-    
-      key: _scaffoldKey,
+      key: scaffoldKey,
       drawer: const CustomDrawer(),
-      appBar: AppBar(
-        title: Text(
-          'Home',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
         ),
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDarkMode
-                  ? [
-                      Colors.deepPurple.shade900,
-                      Colors.indigo.shade900,
-                    ]
-                  : [
-                      Colors.deepPurple.shade700,
-                      Colors.indigo.shade700,
-                    ],
-            ),
-          ),
-        ),
-        actions: [
-          Obx(() {
-            return IconButton(
-              onPressed: () {
-                themeController.toggleTheme();
-              },
-              icon: Icon(
-                themeController.isDarkMode.value 
-                    ? Icons.wb_sunny 
-                    : Icons.nights_stay,
-                color: Colors.white,
-              ),
-            );
-          }),
-          const SizedBox(width: 15,),
-          IconButton(
-            onPressed: () {
-              Get.off(const SubjectListScreen());
-            },
-            icon: const Icon(Ionicons.logo_youtube, color: Colors.white),
-          ),
-          const SizedBox(width: 15,),
-          IconButton(
-            onPressed: () {
-              courseController.fetchCourses(forceRefresh: true);
-            },
-            icon: const Icon(
-              Ionicons.refresh,
-              color: Colors.white,
-            ),
-          ),
-         const  
-         SizedBox(width: 15,),
-        ],
-     iconTheme: const IconThemeData(color: Colors.white), ),
-      body: Obx(() {
-        // Show loading spinner if loading and there's no error yet
-        if (courseController.isLoading.value &&
-            courseController.errorMessage.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-              
-        // Show error message if offline and no data
-        if (courseController.errorMessage.isNotEmpty &&
-            courseController.courses.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.wifi_off, size: 80),
-                const SizedBox(height: 16),
-                Text(
-                  courseController.errorMessage.value,
-                  style: const TextStyle(fontSize: 18, color: Colors.grey),
-                  textAlign: TextAlign.center,
+        child: SafeArea(
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // 1. Sliver App Bar with Flexible Space (Spotify-like header)
+              SliverAppBar(
+                backgroundColor: AppTheme.backgroundDark, // Fully opaque
+                expandedHeight: 180.0, // Reduced height further
+                floating: false,
+                pinned: true,
+                elevation: 0,
+                scrolledUnderElevation: 0, // Disable M3 scroll tint
+                surfaceTintColor: Colors.transparent, // Disable M3 tint
+                shadowColor: Colors.transparent,
+                leading: GestureDetector(
+                  onTap: () => scaffoldKey.currentState?.openDrawer(),
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBackground.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.menu_rounded,
+                        color: AppTheme.textPrimary),
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          );
-        }
-              
-        final courses = courseController.courses;
-        final cardHeight = screenHeight * 0.22;
-        final cardOverlap = screenHeight * 0.18;
-              
-        return Padding(
-          padding: const EdgeInsets.only(top: 16), // Adjusted for app bar
-          child: SizedBox(
-            height: screenHeight,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: List.generate(courses.length, (index) {
-                final course = courses[index];
-                final color = cardColors[index % cardColors.length];
-                final cardWidth = screenWidth *
-                    (0.95 - (index * 0.05)).clamp(0.7, 0.95);
-              
-                return Positioned(
-                  top: index * cardOverlap,
-                  child: GestureDetector(
-                    onTap: () => Get.to(
-                        () => TopicListScreen(courseId: course['id'])),
-                    child: Container(
-                      width: cardWidth,
-                      height: cardHeight,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: const BorderRadius.only(
-                            topRight: Radius.circular(20),
-                            bottomRight: Radius.circular(20)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            offset: const Offset(0, 4),
-                            blurRadius: 6,
-                          )
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          course['title'],
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                actions: [
+                  // Theme Toggle
+                  Obx(() => GestureDetector(
+                        onTap: () => themeController.toggleTheme(),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardBackground.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            themeController.isDarkMode.value
+                                ? Icons.wb_sunny_rounded
+                                : Icons.nights_stay_rounded,
+                            color: AppTheme.accentYellow,
+                            size: 20,
                           ),
                         ),
+                      )),
+                  const SizedBox(width: 8),
+                  // Refresh Button
+                  GestureDetector(
+                    onTap: () =>
+                        courseController.fetchCourses(forceRefresh: true),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardBackground.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.refresh_rounded,
+                        color: AppTheme.accentBlue,
+                        size: 20,
                       ),
                     ),
                   ),
-                );
-              }),
+                  const SizedBox(width: 16),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double percentage = ((constraints.biggest.height -
+                                  kToolbarHeight -
+                                  MediaQuery.of(context).padding.top) /
+                              (180.0 -
+                                  kToolbarHeight -
+                                  MediaQuery.of(context).padding.top))
+                          .clamp(0.0, 1.0);
+                      return Opacity(
+                        opacity: percentage,
+                        child: _buildHeader(),
+                      );
+                    },
+                  ),
+                  collapseMode: CollapseMode.parallax,
+                  expandedTitleScale: 1.0,
+                ),
+              ),
+
+              // 2. Category Icons (Sticky Header)
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: CategoryHeaderDelegate(
+                  minHeight: 145.0,
+                  maxHeight: 145.0,
+                  builder: (context, overlapsContent) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        // Use gradient when stuck to match app background feel, transparent when at rest
+                        gradient: overlapsContent
+                            ? LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  AppTheme.backgroundDark,
+                                  AppTheme.backgroundDark,
+                                  AppTheme.backgroundDark.withOpacity(0.0),
+                                ],
+                                stops: const [0.0, 0.7, 1.0],
+                              )
+                            : null,
+                        color: overlapsContent ? null : Colors.transparent,
+                        boxShadow: [],
+                      ),
+                      child: _buildCategoryIcons(),
+                    );
+                  },
+                ),
+              ),
+
+              // 3. Section Header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Available Courses',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Obx(() => Text(
+                            '${courseController.courses.length} courses',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 4. Course List
+              Obx(() => _buildCourseListSliver(courseController)),
+
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 100), // Bottom padding
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return const Padding(
+      // Increased top padding to push text down as requested
+      // Increased top padding to push text down as requested
+      padding: EdgeInsets.fromLTRB(20, 80, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Hello, Student',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              SizedBox(width: 8),
+              Text(
+                '👋',
+                style: TextStyle(fontSize: 28),
+              ),
+            ],
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Ready to learn something new today?',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
             ),
           ),
-        );
-      }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryIcons() {
+    final categories = [
+      {
+        'icon': Icons.wb_sunny_rounded,
+        'label': 'Solar System',
+        'color': AppTheme.accentBlue
+      },
+      {
+        'icon': Icons.games_rounded,
+        'label': 'Games',
+        'color': AppTheme.accentPink
+      },
+      {
+        'icon': Icons.quiz_rounded,
+        'label': 'Quiz',
+        'color': AppTheme.accentPurple
+      },
+      {
+        'icon': Icons.notes_outlined,
+        'label': 'Notes',
+        'color': AppTheme.accentOrange
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: categories.map((category) {
+          return GestureDetector(
+            onTap: () {
+              if (category['label'] == 'Solar System') {
+                Get.to(
+                  () => const SolarSystemScreen(),
+                  transition: Transition.downToUp,
+                );
+              } else if (category['label'] == 'Notes') {
+                Get.to(
+                  () => const NotesScreen(),
+                  transition: Transition.downToUp,
+                );
+              }
+            },
+            child: Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        (category['color'] as Color),
+                        (category['color'] as Color).withOpacity(0.6),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (category['color'] as Color).withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    category['icon'] as IconData,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  category['label'] as String,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildCourseListSliver(CourseController courseController) {
+    // Loading state
+    if (courseController.isLoading.value &&
+        courseController.errorMessage.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.only(top: 50),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  color: AppTheme.accentBlue,
+                  strokeWidth: 3,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Loading courses...',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Error state
+    if (courseController.errorMessage.isNotEmpty &&
+        courseController.courses.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(top: 50),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardBackground.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.wifi_off_rounded,
+                    size: 48,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  courseController.errorMessage.value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () =>
+                      courseController.fetchCourses(forceRefresh: true),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                  style: AppTheme.primaryButtonStyle,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Course list without ads
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final course = courseController.courses[index];
+            final gradient = cardGradients[index % cardGradients.length];
+            final icon = IconHelper.getIconForSubject(course['title'] ?? '');
+
+            return _buildCourseCard(
+              course: course,
+              gradient: gradient,
+              icon: icon,
+              index: index,
+            );
+          },
+          childCount: courseController.courses.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourseCard({
+    required Map<String, dynamic> course,
+    required LinearGradient gradient,
+    required IconData icon,
+    required int index,
+  }) {
+    return GestureDetector(
+      onTap: () => Get.to(
+        () => TopicListScreen(courseId: course['id']),
+        transition: Transition.rightToLeft,
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.cardBackground.withOpacity(0.9),
+              AppTheme.cardBackgroundLight.withOpacity(0.6),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Course icon with gradient
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: gradient.colors.first.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+
+            // Course info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course['title'] ?? 'Course',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.play_circle_outline_rounded,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          'Start learning',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Arrow indicator
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppTheme.textSecondary,
+                size: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

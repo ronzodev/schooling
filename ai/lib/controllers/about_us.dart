@@ -1,9 +1,12 @@
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class AboutUsController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+  // Use Pamphlet Firebase app for about us content
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+
   // Observable variables
   var isLoading = true.obs;
   var aboutUsData = AboutUs().obs;
@@ -20,23 +23,19 @@ class AboutUsController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = '';
-      
+
       // Assuming you have a single document for About Us
       // You can change 'about' to your document ID
-      DocumentSnapshot doc = await _firestore
-          .collection('aboutUs')
-          .doc('about')
-          .get();
+      DocumentSnapshot doc =
+          await _firestore.collection('aboutUs').doc('about').get();
 
       if (doc.exists) {
         aboutUsData.value = AboutUs.fromFirestore(doc);
       } else {
         // If document doesn't exist, try to get the first document in collection
-        QuerySnapshot querySnapshot = await _firestore
-            .collection('aboutUs')
-            .limit(1)
-            .get();
-            
+        QuerySnapshot querySnapshot =
+            await _firestore.collection('aboutUs').limit(1).get();
+
         if (querySnapshot.docs.isNotEmpty) {
           aboutUsData.value = AboutUs.fromFirestore(querySnapshot.docs.first);
         } else {
@@ -100,7 +99,7 @@ class AboutUs {
   // Create AboutUs from Firestore document
   factory AboutUs.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    
+
     return AboutUs(
       title: data['title'] ?? 'About Us',
       description: data['description'] ?? '',
@@ -132,23 +131,23 @@ class AboutUs {
   // Get formatted about us text
   String getFormattedText() {
     List<String> sections = [];
-    
+
     if (description.isNotEmpty) {
       sections.add(description);
     }
-    
+
     if (mission.isNotEmpty) {
       sections.add('\n\nOur Mission:\n$mission');
     }
-    
+
     if (vision.isNotEmpty) {
       sections.add('\n\nOur Vision:\n$vision');
     }
-    
+
     if (contactInfo.isNotEmpty) {
       sections.add('\n\nContact Information:\n$contactInfo');
     }
-    
+
     return sections.join('');
   }
 }

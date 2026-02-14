@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:ai/chem_periodic/detailed_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/app_theme.dart';
 
 // Constants
 const kRowCount = 6;
@@ -40,48 +41,43 @@ class ElementsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.blueGrey[900],
-      appBar: AppBar(
-        title: const Text(
-          'Elements',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20.0,
-          ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
         ),
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDarkMode
-                  ? [
-                      Colors.deepPurple.shade900,
-                      Colors.indigo.shade900,
-                    ]
-                  : [
-                      Colors.deepPurple.shade700,
-                      Colors.indigo.shade700,
-                    ],
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text(
+                'Elements',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20.0,
+                ),
+              ),
+              centerTitle: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: AppTheme.textPrimary),
             ),
-          ),
+            Expanded(
+              child: FutureBuilder<List<ElementData>>(
+                future: gridList,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return _buildTable(snapshot.data!);
+                  } else if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading elements.'));
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                },
+              ),
+            ),
+          ],
         ),
-      ),
-      body: FutureBuilder<List<ElementData>>(
-        future: gridList,
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data != null) {
-            return _buildTable(snapshot.data!);
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Error loading elements.'));
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
       ),
     );
   }

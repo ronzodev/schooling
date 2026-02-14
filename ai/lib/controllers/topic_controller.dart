@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -24,6 +25,34 @@ class TopicController extends GetxController {
     _setupConnectivityListener();
   }
 
+  /// Load cached topics immediately for a specific course
+  Future<void> loadCachedTopicsImmediately(String courseId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedTopics = prefs.getString('cachedTopics_$courseId');
+
+      if (cachedTopics != null && cachedTopics.isNotEmpty) {
+        topics.value = List<Map<String, dynamic>>.from(
+          (jsonDecode(cachedTopics) as List)
+              .map((e) => Map<String, dynamic>.from(e)),
+        );
+
+        final lastFetch = prefs.getString('lastTopicsFetch_$courseId');
+        if (lastFetch != null) {
+          lastFetchTime.value = DateTime.parse(lastFetch);
+        }
+
+        // If we have cached topics, don't show loading state
+        isLoading.value = false;
+
+        print(
+            "TopicController: Loaded ${topics.length} cached topics immediately for course $courseId");
+      }
+    } catch (e) {
+      print("Error loading cached topics on init: $e");
+    }
+  }
+
   @override
   void onClose() {
     _connectivitySubscription.cancel();
@@ -32,10 +61,14 @@ class TopicController extends GetxController {
   }
 
   void _setupConnectivityListener() {
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      final nowOffline = results.isEmpty || results.contains(ConnectivityResult.none);
+    _connectivitySubscription = _connectivity.onConnectivityChanged
+        .listen((List<ConnectivityResult> results) {
+      final nowOffline =
+          results.isEmpty || results.contains(ConnectivityResult.none);
       isOffline.value = nowOffline;
-      if (!nowOffline && currentCourseId != null && (topics.isEmpty || isFirstLoad)) {
+      if (!nowOffline &&
+          currentCourseId != null &&
+          (topics.isEmpty || isFirstLoad)) {
         setupRealtimeTopics(currentCourseId!);
       }
     });
@@ -44,17 +77,26 @@ class TopicController extends GetxController {
   void setupRealtimeTopics(String courseId) {
     // Cancel any existing subscription
     _topicsSubscription?.cancel();
-    
+
     currentCourseId = courseId;
-    isLoading(true);
+
+    // Only show loading if we don't have cached topics
+    if (topics.isEmpty) {
+      isLoading(true);
+    }
+
     errorMessage('');
 
-    // Load cached data first
-    _loadCachedTopics(courseId);
+    // Load cached data first (if not already loaded)
+    if (topics.isEmpty) {
+      _loadCachedTopics(courseId);
+    }
 
     try {
-      // Initialize the topics subscription
-      _topicsSubscription = FirebaseFirestore.instance
+      // Use Pamphlet Firebase app for topics
+      final pamphletFirestore =
+          FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+      _topicsSubscription = pamphletFirestore
           .collection('courses')
           .doc(courseId)
           .collection('topics')
@@ -68,7 +110,8 @@ class TopicController extends GetxController {
     }
   }
 
-  Future<void> _handleTopicsUpdate(QuerySnapshot querySnapshot, String courseId) async {
+  Future<void> _handleTopicsUpdate(
+      QuerySnapshot querySnapshot, String courseId) async {
     try {
       final freshTopics = querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -77,13 +120,14 @@ class TopicController extends GetxController {
 
       topics.value = freshTopics;
       isOffline(false);
-      
+
       // Update cache
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cachedTopics_$courseId', jsonEncode(freshTopics));
       lastFetchTime.value = DateTime.now();
-      await prefs.setString('lastTopicsFetch_$courseId', lastFetchTime.value.toIso8601String());
-      
+      await prefs.setString(
+          'lastTopicsFetch_$courseId', lastFetchTime.value.toIso8601String());
+
       isLoading(false);
       isFirstLoad = false;
     } catch (e) {
@@ -126,12 +170,15 @@ class TopicController extends GetxController {
       isLoading(true);
       errorMessage('');
       try {
-        final querySnapshot = await FirebaseFirestore.instance
+        // Use Pamphlet Firebase app for topics
+        final pamphletFirestore =
+            FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+        final querySnapshot = await pamphletFirestore
             .collection('courses')
             .doc(currentCourseId!)
             .collection('topics')
             .get(const GetOptions(source: Source.server));
-        
+
         await _handleTopicsUpdate(querySnapshot, currentCourseId!);
       } catch (e) {
         errorMessage('Failed to refresh: ${e.toString()}');

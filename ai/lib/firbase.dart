@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> populateFirestore() async {
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  // Use Pamphlet Firebase app for courses data
+  FirebaseFirestore firestore =
+      FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
 
   // Course Data with at least 2 questions per topic
   List<Map<String, dynamic>> courses = [
@@ -40,9 +43,11 @@ Future<void> populateFirestore() async {
               "idx": 1,
               "question": "What is the sum of interior angles of a triangle?",
               "correctAnswer": "180 degrees",
-              "explanation": "The sum of the angles in a triangle is always 180°.",
+              "explanation":
+                  "The sum of the angles in a triangle is always 180°.",
               "imageUrl": null,
-              "instructions": "Find the total of the interior angles of a triangle.",
+              "instructions":
+                  "Find the total of the interior angles of a triangle.",
               "correctAnswerImage": null
             },
             {
@@ -78,7 +83,8 @@ Future<void> populateFirestore() async {
               "idx": 2,
               "question": "What is the unit of force?",
               "correctAnswer": "Newton (N)",
-              "explanation": "The SI unit of force is named after Sir Isaac Newton.",
+              "explanation":
+                  "The SI unit of force is named after Sir Isaac Newton.",
               "imageUrl": null,
               "instructions": "Provide the SI unit for force.",
               "correctAnswerImage": null
@@ -98,7 +104,8 @@ Future<void> populateFirestore() async {
               "idx": 1,
               "question": "What is the function of the mitochondria?",
               "correctAnswer": "Produces energy (ATP)",
-              "explanation": "The mitochondria are known as the powerhouse of the cell.",
+              "explanation":
+                  "The mitochondria are known as the powerhouse of the cell.",
               "imageUrl": "https://example.com/q4.png",
               "instructions": "Explain the role of mitochondria.",
               "correctAnswerImage": null
@@ -125,9 +132,11 @@ Future<void> populateFirestore() async {
           "questions": [
             {
               "idx": 1,
-              "question": "Identify the tense in this sentence: 'She had finished her work before dinner.'",
+              "question":
+                  "Identify the tense in this sentence: 'She had finished her work before dinner.'",
               "correctAnswer": "Past perfect tense",
-              "explanation": "The phrase 'had finished' indicates past perfect tense.",
+              "explanation":
+                  "The phrase 'had finished' indicates past perfect tense.",
               "imageUrl": null,
               "instructions": "Determine the tense used in the sentence.",
               "correctAnswerImage": null
@@ -136,7 +145,8 @@ Future<void> populateFirestore() async {
               "idx": 2,
               "question": "What is the present continuous tense?",
               "correctAnswer": "An action happening right now",
-              "explanation": "Present continuous tense is used for ongoing actions (e.g., 'She is running').",
+              "explanation":
+                  "Present continuous tense is used for ongoing actions (e.g., 'She is running').",
               "imageUrl": null,
               "instructions": "Define the present continuous tense.",
               "correctAnswerImage": null

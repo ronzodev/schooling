@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -13,13 +14,13 @@ class QuestionController extends GetxController {
   var lastFetchTime = DateTime(0).obs;
   String? currentCourseId;
   String? currentTopicId;
-  
+
   // Pagination variables
   var hasMore = true.obs;
   var isLoadingMore = false.obs;
   DocumentSnapshot? _lastDocument;
   final int _pageSize = 10; // Number of questions per page
-  
+
   final Connectivity _connectivity = Connectivity();
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   StreamSubscription<QuerySnapshot>? _questionsSubscription;
@@ -28,7 +29,8 @@ class QuestionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((_) {});
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((_) {});
     _setupConnectivityListener();
   }
 
@@ -40,10 +42,15 @@ class QuestionController extends GetxController {
   }
 
   void _setupConnectivityListener() {
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      final nowOffline = results.isEmpty || results.contains(ConnectivityResult.none);
+    _connectivitySubscription = _connectivity.onConnectivityChanged
+        .listen((List<ConnectivityResult> results) {
+      final nowOffline =
+          results.isEmpty || results.contains(ConnectivityResult.none);
       isOffline.value = nowOffline;
-      if (!nowOffline && currentCourseId != null && currentTopicId != null && (questions.isEmpty || isFirstLoad)) {
+      if (!nowOffline &&
+          currentCourseId != null &&
+          currentTopicId != null &&
+          (questions.isEmpty || isFirstLoad)) {
         setupRealtimeQuestions(currentCourseId!, currentTopicId!);
       }
     });
@@ -52,10 +59,10 @@ class QuestionController extends GetxController {
   void setupRealtimeQuestions(String courseId, String topicId) {
     // Cancel any existing subscription
     _questionsSubscription?.cancel();
-    
+
     // Reset pagination state
     _resetPagination();
-    
+
     currentCourseId = courseId;
     currentTopicId = topicId;
     isLoading(true);
@@ -65,18 +72,22 @@ class QuestionController extends GetxController {
     _loadCachedQuestions(courseId, topicId);
 
     try {
-      // Initialize the questions subscription with pagination
-      _questionsSubscription = FirebaseFirestore.instance
+      // Use Pamphlet Firebase app for questions
+      final pamphletFirestore =
+          FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+      _questionsSubscription = pamphletFirestore
           .collection('courses')
           .doc(courseId)
           .collection('topics')
           .doc(topicId)
           .collection('questions')
-          .orderBy('createdAt', descending: true) // Add ordering for consistent pagination
+          .orderBy('createdAt',
+              descending: true) // Add ordering for consistent pagination
           .limit(_pageSize)
           .snapshots()
           .listen(
-            (querySnapshot) => _handleQuestionsUpdate(querySnapshot, courseId, topicId),
+            (querySnapshot) =>
+                _handleQuestionsUpdate(querySnapshot, courseId, topicId),
             onError: (error) => _handleQuestionsError(error),
           );
     } catch (e) {
@@ -85,12 +96,18 @@ class QuestionController extends GetxController {
   }
 
   Future<void> loadMoreQuestions() async {
-    if (isLoadingMore.value || !hasMore.value || currentCourseId == null || currentTopicId == null) return;
-    
+    if (isLoadingMore.value ||
+        !hasMore.value ||
+        currentCourseId == null ||
+        currentTopicId == null) return;
+
     isLoadingMore(true);
-    
+
     try {
-      Query query = FirebaseFirestore.instance
+      // Use Pamphlet Firebase app for questions
+      final pamphletFirestore =
+          FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+      Query query = pamphletFirestore
           .collection('courses')
           .doc(currentCourseId!)
           .collection('topics')
@@ -105,7 +122,7 @@ class QuestionController extends GetxController {
       query = query.limit(_pageSize);
 
       final querySnapshot = await query.get();
-      
+
       if (querySnapshot.docs.isEmpty) {
         hasMore.value = false;
         return;
@@ -117,7 +134,7 @@ class QuestionController extends GetxController {
       }).toList();
 
       questions.addAll(newQuestions);
-      
+
       if (querySnapshot.docs.length < _pageSize) {
         hasMore.value = false;
       } else {
@@ -126,7 +143,6 @@ class QuestionController extends GetxController {
 
       // Update cache with new data
       await _updateCache();
-
     } catch (e) {
       errorMessage('Failed to load more questions: ${e.toString()}');
     } finally {
@@ -134,7 +150,8 @@ class QuestionController extends GetxController {
     }
   }
 
-  Future<void> _handleQuestionsUpdate(QuerySnapshot querySnapshot, String courseId, String topicId) async {
+  Future<void> _handleQuestionsUpdate(
+      QuerySnapshot querySnapshot, String courseId, String topicId) async {
     try {
       final freshQuestions = querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -142,7 +159,7 @@ class QuestionController extends GetxController {
       }).toList();
 
       questions.value = freshQuestions;
-      
+
       // Update pagination state
       if (querySnapshot.docs.isNotEmpty) {
         _lastDocument = querySnapshot.docs.last;
@@ -152,47 +169,45 @@ class QuestionController extends GetxController {
       }
 
       isOffline(false);
-      
+
       // Update cache
       await _updateCache();
-      
+
       lastFetchTime.value = DateTime.now();
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('lastQuestionsFetch_${courseId}_$topicId', lastFetchTime.value.toIso8601String());
-      
+      await prefs.setString('lastQuestionsFetch_${courseId}_$topicId',
+          lastFetchTime.value.toIso8601String());
+
       isLoading(false);
       isFirstLoad = false;
-      
     } catch (e) {
       _handleQuestionsError(e);
     }
   }
 
-
 // collapse the answer
 // Add this to your QuestionController class
-var collapsedStates = <String, bool>{}.obs;
+  var collapsedStates = <String, bool>{}.obs;
 
-void toggleQuestionCollapse(String questionId) {
-  if (collapsedStates.containsKey(questionId)) {
-    collapsedStates[questionId] = !collapsedStates[questionId]!;
-  } else {
-    collapsedStates[questionId] = true; // Start collapsed by default
+  void toggleQuestionCollapse(String questionId) {
+    if (collapsedStates.containsKey(questionId)) {
+      collapsedStates[questionId] = !collapsedStates[questionId]!;
+    } else {
+      collapsedStates[questionId] = true; // Start collapsed by default
+    }
+    collapsedStates.refresh();
   }
-  collapsedStates.refresh();
-}
 
-bool isQuestionCollapsed(String questionId) {
-  return collapsedStates[questionId] ?? true; // Default to collapsed
-}
+  bool isQuestionCollapsed(String questionId) {
+    return collapsedStates[questionId] ?? true; // Default to collapsed
+  }
 
   Future<void> _updateCache() async {
     if (currentCourseId != null && currentTopicId != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-        'cachedQuestions_${currentCourseId}_$currentTopicId', 
-        jsonEncode(questions)
-      );
+          'cachedQuestions_${currentCourseId}_$currentTopicId',
+          jsonEncode(questions));
     }
   }
 
@@ -206,12 +221,14 @@ bool isQuestionCollapsed(String questionId) {
   Future<void> _loadCachedQuestions(String courseId, String topicId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cachedQuestions = prefs.getString('cachedQuestions_${courseId}_$topicId');
+      final cachedQuestions =
+          prefs.getString('cachedQuestions_${courseId}_$topicId');
       if (cachedQuestions != null) {
         questions.value = (jsonDecode(cachedQuestions) as List)
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
-        final lastFetch = prefs.getString('lastQuestionsFetch_${courseId}_$topicId');
+        final lastFetch =
+            prefs.getString('lastQuestionsFetch_${courseId}_$topicId');
         if (lastFetch != null) {
           lastFetchTime.value = DateTime.parse(lastFetch);
         }
@@ -226,9 +243,12 @@ bool isQuestionCollapsed(String questionId) {
       isLoading(true);
       errorMessage('');
       _resetPagination();
-      
+
       try {
-        final querySnapshot = await FirebaseFirestore.instance
+        // Use Pamphlet Firebase app for questions
+        final pamphletFirestore =
+            FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+        final querySnapshot = await pamphletFirestore
             .collection('courses')
             .doc(currentCourseId!)
             .collection('topics')
@@ -238,7 +258,8 @@ bool isQuestionCollapsed(String questionId) {
             .limit(_pageSize)
             .get(const GetOptions(source: Source.server));
 
-        await _handleQuestionsUpdate(querySnapshot, currentCourseId!, currentTopicId!);
+        await _handleQuestionsUpdate(
+            querySnapshot, currentCourseId!, currentTopicId!);
       } catch (e) {
         errorMessage('Failed to refresh: ${e.toString()}');
       } finally {

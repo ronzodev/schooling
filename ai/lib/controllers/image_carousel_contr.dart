@@ -1,12 +1,16 @@
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 class ImageCarouselController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  
+  // Use Pamphlet Firebase app for images (carousel)
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
+  final FirebaseStorage _storage =
+      FirebaseStorage.instanceFor(app: Firebase.app('pamphlet'));
+
   // Observable variables
   var isLoading = true.obs;
   var images = <CarouselImage>[].obs;
@@ -21,71 +25,75 @@ class ImageCarouselController extends GetxController {
 
   // Fetch images from Firebase
   Future<void> fetchImages() async {
-  try {
-    isLoading.value = true;
-    errorMessage.value = '';
-    
-    debugPrint('Fetching images from Firestore...');
-    
-    // TEMPORARY WORKAROUND - Remove orderBy until index is created
-    QuerySnapshot querySnapshot = await _firestore
-        .collection('images')
-        .where('isActive', isEqualTo: true)
-        .get();
-
-    debugPrint('Found ${querySnapshot.docs.length} documents');
-
-    if (querySnapshot.docs.isEmpty) {
-      images.value = [];
-      errorMessage.value = 'No images found in database';
-      return;
-    }
-
-    // Sort locally by order field
-    var docs = querySnapshot.docs;
-    // sort by order if possible
     try {
-      docs.sort((a, b) {
-        final aData = a.data() as Map<String, dynamic>?;
-        final bData = b.data() as Map<String, dynamic>?;
-        final int orderA = (aData != null && aData['order'] is int) ? aData['order'] as int : int.tryParse('${aData?['order']}') ?? 0;
-        final int orderB = (bData != null && bData['order'] is int) ? bData['order'] as int : int.tryParse('${bData?['order']}') ?? 0;
-        return orderA.compareTo(orderB);
-      });
-    } catch (e) {
-      debugPrint('Failed to sort images by order: $e');
-    }
+      isLoading.value = true;
+      errorMessage.value = '';
 
-    List<CarouselImage> fetchedImages = [];
-    
-    for (var doc in docs) {
-      try {
-        debugPrint('Processing document: ${doc.id}');
-        CarouselImage image = await CarouselImage.fromFirestore(doc, _storage);
-        fetchedImages.add(image);
-        debugPrint('Successfully processed image: ${image.title}');
-      } catch (e) {
-        debugPrint('Error processing image ${doc.id}: $e');
-        continue;
+      debugPrint('Fetching images from Firestore...');
+
+      // TEMPORARY WORKAROUND - Remove orderBy until index is created
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('images')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      debugPrint('Found ${querySnapshot.docs.length} documents');
+
+      if (querySnapshot.docs.isEmpty) {
+        images.value = [];
+        errorMessage.value = 'No images found in database';
+        return;
       }
-    }
 
-    images.value = fetchedImages;
-    
-    if (fetchedImages.isEmpty) {
-      errorMessage.value = 'No valid images could be loaded';
-      debugPrint('No valid images loaded');
-    } else {
-      debugPrint('Successfully loaded ${fetchedImages.length} images');
+      // Sort locally by order field
+      var docs = querySnapshot.docs;
+      // sort by order if possible
+      try {
+        docs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>?;
+          final bData = b.data() as Map<String, dynamic>?;
+          final int orderA = (aData != null && aData['order'] is int)
+              ? aData['order'] as int
+              : int.tryParse('${aData?['order']}') ?? 0;
+          final int orderB = (bData != null && bData['order'] is int)
+              ? bData['order'] as int
+              : int.tryParse('${bData?['order']}') ?? 0;
+          return orderA.compareTo(orderB);
+        });
+      } catch (e) {
+        debugPrint('Failed to sort images by order: $e');
+      }
+
+      List<CarouselImage> fetchedImages = [];
+
+      for (var doc in docs) {
+        try {
+          debugPrint('Processing document: ${doc.id}');
+          CarouselImage image =
+              await CarouselImage.fromFirestore(doc, _storage);
+          fetchedImages.add(image);
+          debugPrint('Successfully processed image: ${image.title}');
+        } catch (e) {
+          debugPrint('Error processing image ${doc.id}: $e');
+          continue;
+        }
+      }
+
+      images.value = fetchedImages;
+
+      if (fetchedImages.isEmpty) {
+        errorMessage.value = 'No valid images could be loaded';
+        debugPrint('No valid images loaded');
+      } else {
+        debugPrint('Successfully loaded ${fetchedImages.length} images');
+      }
+    } catch (e) {
+      errorMessage.value = 'Error fetching images: ${e.toString()}';
+      debugPrint('Error fetching images: $e');
+    } finally {
+      isLoading.value = false;
     }
-    
-  } catch (e) {
-    errorMessage.value = 'Error fetching images: ${e.toString()}';
-    debugPrint('Error fetching images: $e');
-  } finally {
-    isLoading.value = false;
   }
-}
 
   // Refresh images
   Future<void> refreshImages() async {
@@ -143,21 +151,28 @@ class CarouselImage {
     final String description = (data['description'] as String?)?.trim() ?? '';
     final String storagePath = (data['storagePath'] as String?)?.trim() ?? '';
     String downloadUrl = (data['downloadUrl'] as String?)?.trim() ?? '';
-    final bool isActive = data['isActive'] is bool ? data['isActive'] as bool : true;
-    final int order = (data['order'] is int) ? data['order'] as int : int.tryParse('${data['order']}') ?? 0;
-    final DateTime? createdAt = (data['createdAt'] is Timestamp) ? (data['createdAt'] as Timestamp).toDate() : null;
+    final bool isActive =
+        data['isActive'] is bool ? data['isActive'] as bool : true;
+    final int order = (data['order'] is int)
+        ? data['order'] as int
+        : int.tryParse('${data['order']}') ?? 0;
+    final DateTime? createdAt = (data['createdAt'] is Timestamp)
+        ? (data['createdAt'] as Timestamp).toDate()
+        : null;
 
     if (downloadUrl.isEmpty) {
       if (storagePath.isNotEmpty) {
         try {
-          if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) {
+          if (storagePath.startsWith('http://') ||
+              storagePath.startsWith('https://')) {
             downloadUrl = storagePath;
           } else {
             final ref = storage.ref().child(storagePath);
             downloadUrl = await ref.getDownloadURL();
           }
         } catch (e) {
-          debugPrint('Failed to getDownloadURL for doc ${doc.id}, storagePath="$storagePath": $e');
+          debugPrint(
+              'Failed to getDownloadURL for doc ${doc.id}, storagePath="$storagePath": $e');
           downloadUrl = '';
         }
       }
