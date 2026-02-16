@@ -9,6 +9,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 class CourseController extends GetxController {
   var courses = <Map<String, dynamic>>[].obs;
   var isLoading = true.obs;
+  var isRefreshing = false.obs;
   var isOffline = false.obs;
   var errorMessage = ''.obs;
   var lastFetchTime = DateTime(0).obs;
@@ -79,6 +80,11 @@ class CourseController extends GetxController {
       return;
     }
 
+    // Track manual refresh state for UI feedback
+    if (forceRefresh) {
+      isRefreshing(true);
+    }
+
     // Show loading only if we don't have cached data
     if (courses.isEmpty) {
       isLoading(true);
@@ -98,6 +104,7 @@ class CourseController extends GetxController {
               'No internet connection and no cached courses available');
         }
         isLoading(false);
+        isRefreshing(false);
         return;
       }
 
@@ -114,6 +121,7 @@ class CourseController extends GetxController {
       }
     } finally {
       isLoading(false);
+      isRefreshing(false);
     }
   }
 

@@ -1,5 +1,5 @@
 import 'package:ai/controllers/ads_controller.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'package:ai/widgets/lined_paper_painter.dart';
 import 'package:ai/pages/main_screen.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +9,7 @@ import 'package:flutter_tex/flutter_tex.dart';
 import '../controllers/question_controller.dart';
 import '../theme/app_theme.dart';
 import 'view_question.dart';
+import '../widgets/no_connection_widget.dart';
 
 class QuestionListScreen extends StatefulWidget {
   final String courseId;
@@ -240,42 +241,12 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
     if (questionController.errorMessage.isNotEmpty &&
         questionController.questions.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppTheme.error.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.error_outline_rounded,
-                  size: 48,
-                  color: AppTheme.error,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                questionController.errorMessage.value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => questionController.setupRealtimeQuestions(
-                    widget.courseId, widget.topicId),
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
-                style: AppTheme.primaryButtonStyle,
-              ),
-            ],
+        child: NoConnectionWidget(
+          onRetry: () => questionController.setupRealtimeQuestions(
+            widget.courseId,
+            widget.topicId,
           ),
+          message: questionController.errorMessage.value,
         ),
       );
     }
@@ -959,7 +930,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
                 )
               : SelectableText(
                   text,
-                  style: GoogleFonts.patrickHand(
+                  style: TextStyle(
+                    fontFamily: 'Patrick Hand',
                     fontSize: isQuestion ? 24 : 20, // Larger handwritten text
                     height: 2.0, // Match line height (20 * 2.0 = 40)
                     fontWeight:

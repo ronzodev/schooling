@@ -6,8 +6,10 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart' show MobileAds;
 
 import 'controllers/openAd_controller.dart';
+import 'controllers/network_controller.dart';
 import 'firebase_options.dart';
 import 'pages/splash_screen.dart';
+import 'scripts/seed_app_content.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,8 @@ void main() async {
   // Initialize ads controller
   final adsController = GoogleAdsController.instance;
   await adsController.initialize();
+  // Seed app content collection (creates doc if it doesn't exist)
+  await seedAppContent();
 
   runApp(MyApp());
 }
@@ -55,6 +59,10 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Past Paper Solutions',
         theme: ThemeData(primarySwatch: Colors.blue),
+        // NetworkBannerWrapper sits ABOVE every screen — no overlays needed
+        builder: (context, child) {
+          return NetworkBannerWrapper(child: child ?? const SizedBox.shrink());
+        },
         home: SplashScreen());
   }
 }

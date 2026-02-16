@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/course_controller.dart';
-import '../controllers/theme_controller.dart';
+import '../controllers/link_controller.dart';
+import '../controllers/app_content_controller.dart';
+import 'package:line_icons/line_icons.dart';
 import '../drawer/drawer_widget.dart';
 import '../theme/app_theme.dart';
 import '../utils/icon_helper.dart';
@@ -10,6 +12,8 @@ import 'topic.dart';
 import 'category_header_delegate.dart';
 import '../solar/solar_system_screen.dart';
 import 'notes_screen.dart';
+import 'past_papers.dart';
+import '../widgets/no_connection_widget.dart';
 
 class CourseListScreen extends StatelessWidget {
   // Playful gradient colors for course cards
@@ -26,7 +30,8 @@ class CourseListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final CourseController courseController = Get.put(CourseController());
-    final ThemeController themeController = Get.put(ThemeController());
+    final LinksController linksController = Get.put(LinksController());
+    Get.put(AppContentController());
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
     return Scaffold(
@@ -63,30 +68,15 @@ class CourseListScreen extends StatelessWidget {
                   ),
                 ),
                 actions: [
-                  // Theme Toggle
-                  Obx(() => GestureDetector(
-                        onTap: () => themeController.toggleTheme(),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardBackground.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            themeController.isDarkMode.value
-                                ? Icons.wb_sunny_rounded
-                                : Icons.nights_stay_rounded,
-                            color: AppTheme.accentYellow,
-                            size: 20,
-                          ),
-                        ),
-                      )),
-                  const SizedBox(width: 8),
-                  // Refresh Button
+                  // WhatsApp Button
                   GestureDetector(
-                    onTap: () =>
-                        courseController.fetchCourses(forceRefresh: true),
+                    onTap: () {
+                      final whatsapp =
+                          linksController.getLinkByPlatform('whatsapp');
+                      if (whatsapp != null) {
+                        linksController.launchLink(whatsapp.url);
+                      }
+                    },
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       padding: const EdgeInsets.all(8),
@@ -95,10 +85,41 @@ class CourseListScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
-                        Icons.refresh_rounded,
-                        color: AppTheme.accentBlue,
+                        LineIcons.whatSApp,
+                        color: AppTheme.accentGreen,
                         size: 20,
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Refresh Button
+                  GestureDetector(
+                    onTap: () {
+                      if (courseController.isRefreshing.value) return;
+                      courseController.fetchCourses(forceRefresh: true);
+                      Get.find<AppContentController>().fetchContent();
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardBackground.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Obx(() => courseController.isRefreshing.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: AppTheme.accentBlue,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.refresh_rounded,
+                              color: AppTheme.accentBlue,
+                              size: 20,
+                            )),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -163,14 +184,14 @@ class CourseListScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Available Courses',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
+                      Obx(() => Text(
+                            Get.find<AppContentController>().sectionTitle.value,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          )),
                       Obx(() => Text(
                             '${courseController.courses.length} courses',
                             style: const TextStyle(
@@ -197,38 +218,37 @@ class CourseListScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return const Padding(
-      // Increased top padding to push text down as requested
-      // Increased top padding to push text down as requested
-      padding: EdgeInsets.fromLTRB(20, 80, 20, 0),
+    final contentController = Get.find<AppContentController>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 80, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(
-                'Hello, Student',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(
-                '👋',
-                style: TextStyle(fontSize: 28),
-              ),
+              Obx(() => Text(
+                    contentController.greeting.value,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  )),
+              const SizedBox(width: 8),
+              Obx(() => Text(
+                    contentController.emoji.value,
+                    style: const TextStyle(fontSize: 28),
+                  )),
             ],
           ),
-          SizedBox(height: 4),
-          Text(
-            'Ready to learn something new today?',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.textSecondary,
-            ),
-          ),
+          const SizedBox(height: 4),
+          Obx(() => Text(
+                contentController.subtitle.value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary,
+                ),
+              )),
         ],
       ),
     );
@@ -241,18 +261,18 @@ class CourseListScreen extends StatelessWidget {
         'label': 'Solar System',
         'color': AppTheme.accentBlue
       },
+      // {
+      //   'icon': Icons.games_rounded,
+      //   'label': 'Games',
+      //   'color': AppTheme.accentPink
+      // },
       {
-        'icon': Icons.games_rounded,
-        'label': 'Games',
-        'color': AppTheme.accentPink
-      },
-      {
-        'icon': Icons.quiz_rounded,
-        'label': 'Quiz',
+        'icon': Icons.text_snippet,
+        'label': 'Past Papers',
         'color': AppTheme.accentPurple
       },
       {
-        'icon': Icons.notes_outlined,
+        'icon': Icons.menu_book_rounded,
         'label': 'Notes',
         'color': AppTheme.accentOrange
       },
@@ -268,6 +288,11 @@ class CourseListScreen extends StatelessWidget {
               if (category['label'] == 'Solar System') {
                 Get.to(
                   () => const SolarSystemScreen(),
+                  transition: Transition.downToUp,
+                );
+              } else if (category['label'] == 'Past Papers') {
+                Get.to(
+                  () => const PastPapersScreen(),
                   transition: Transition.downToUp,
                 );
               } else if (category['label'] == 'Notes') {
@@ -328,70 +353,45 @@ class CourseListScreen extends StatelessWidget {
     if (courseController.isLoading.value &&
         courseController.errorMessage.isEmpty) {
       return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.only(top: 50),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  color: AppTheme.accentBlue,
-                  strokeWidth: 3,
+          child: Padding(
+              padding: EdgeInsets.only(top: 50),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      color: AppTheme.accentBlue,
+                      strokeWidth: 3,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading courses...',
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Loading courses...',
-                  style: TextStyle(color: AppTheme.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+              )));
     }
 
-    // Error state
-    if (courseController.errorMessage.isNotEmpty &&
-        courseController.courses.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 50),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardBackground.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.wifi_off_rounded,
-                    size: 48,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  courseController.errorMessage.value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      courseController.fetchCourses(forceRefresh: true),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry'),
-                  style: AppTheme.primaryButtonStyle,
-                ),
-              ],
+    // Check if empty and showing error
+    if (courseController.courses.isEmpty) {
+      if (courseController.errorMessage.value.isNotEmpty) {
+        return SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 50),
+            child: NoConnectionWidget(
+              onRetry: () => courseController.fetchCourses(forceRefresh: true),
+              message: courseController.errorMessage.value.contains('internet')
+                  ? 'Please check your internet connection and try again.'
+                  : courseController.errorMessage.value,
             ),
           ),
+        );
+      }
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.only(top: 50),
+          child: Center(child: Text("No courses available")),
         ),
       );
     }

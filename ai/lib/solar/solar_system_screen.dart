@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 
 import 'solar_model.dart';
 import 'solar_widget.dart';
+import '../widgets/no_connection_widget.dart';
 
 // Loading Overlay Widget
 class LoadingOverlay extends StatefulWidget {
@@ -120,9 +121,10 @@ class _LoadingOverlayState extends State<LoadingOverlay>
         return AnimatedBuilder(
           animation: _animationController,
           builder: (context, child) {
-            final animValue = (_animationController.value * 3 - index).clamp(0, 1);
+            final animValue =
+                (_animationController.value * 3 - index).clamp(0, 1);
             final opacity = (animValue - (animValue - 0.5).abs()).clamp(0, 1);
-            
+
             return Opacity(
               opacity: opacity.toDouble() * 0.7 + 0.3,
               child: Padding(
@@ -162,11 +164,14 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   static const String _baseUrl = 'https://bailus.github.io/WebGL-Solar-System/';
   static const String _cacheDir = 'solar_system_cache';
 
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
-    _initializeWebView();
+    _checkInitialConnectivity();
     _startMonitoringConnectivity();
+    _initializeWebView();
     _cacheWebGLContent();
   }
 
@@ -176,10 +181,19 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
     super.dispose();
   }
 
+  Future<void> _checkInitialConnectivity() async {
+    final result = await _connectivity.checkConnectivity();
+    if (result.contains(ConnectivityResult.none)) {
+      if (mounted) setState(() => _isOffline = true);
+    }
+  }
+
   void _startMonitoringConnectivity() {
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((result) {
-      if (result.contains(ConnectivityResult.none)) {
-        _showNoInternetMessage();
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((result) {
+      final isOffline = result.contains(ConnectivityResult.none);
+      if (isOffline != _isOffline) {
+        if (mounted) setState(() => _isOffline = isOffline);
       }
     });
   }
@@ -206,8 +220,8 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
 
       // Download the main HTML file
       final response = await http.get(Uri.parse(_baseUrl)).timeout(
-        const Duration(seconds: 30),
-      );
+            const Duration(seconds: 30),
+          );
 
       if (response.statusCode == 200) {
         await indexFile.writeAsString(response.body);
@@ -235,37 +249,6 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
     return '';
   }
 
-  void _showNoInternetMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.wifi_off, color: Colors.white, size: 20),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Connection lost. Please check your internet connection to explore the solar system.',
-                style: TextStyle(fontSize: 14, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: const Color.fromARGB(255, 156, 152, 152),
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        action: SnackBarAction(
-          label: 'RETRY',
-          textColor: Colors.amber[300],
-          onPressed: () {
-            _controller.reload();
-          },
-        ),
-      ),
-    );
-  }
-
   void _initializeWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -285,7 +268,6 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
           onWebResourceError: (WebResourceError error) {
             setState(() => _isLoading = false);
             if (error.errorCode == -2 || error.errorCode == -1009) {
-              _showNoInternetMessage();
             } else {
               _showErrorSnackBar('Failed to load: ${error.description}');
             }
@@ -426,7 +408,6 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   void _navigateToPlanet(Planet planet) {
     _connectivity.checkConnectivity().then((result) {
       if (result.contains(ConnectivityResult.none)) {
-        _showNoInternetMessage();
       } else {
         _controller.loadRequest(Uri.parse('$_baseUrl${planet.url}'));
         setState(() => _currentPlanet = planet.name);
@@ -438,7 +419,6 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   void _showPlanetSelector() {
     _connectivity.checkConnectivity().then((result) {
       if (result.contains(ConnectivityResult.none)) {
-        _showNoInternetMessage();
       } else {
         showModalBottomSheet(
           context: context,
@@ -494,7 +474,6 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
           onPressed: () {
             _connectivity.checkConnectivity().then((result) {
               if (result.contains(ConnectivityResult.none)) {
-                _showNoInternetMessage();
               } else {
                 _controller.reload();
               }
@@ -510,6 +489,16 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
   }
 
   Widget _buildBody() {
+    if (_isOffline) {
+      return NoConnectionWidget(
+        onRetry: () {
+          _controller.reload();
+          _checkInitialConnectivity();
+        },
+        message: 'Internet connection is required to explore the Solar System.',
+      );
+    }
+
     return Stack(
       children: [
         WebViewWidget(controller: _controller),
@@ -525,10 +514,7 @@ class _SolarSystemScreenState extends State<SolarSystemScreen> {
       bottom: 100,
       child: Column(
         children: [
-          
           SizedBox(height: 8),
-          
-          
         ],
       ),
     );

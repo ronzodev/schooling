@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 import '../theme/app_theme.dart';
 import '../controllers/ads_controller.dart';
+import '../utils/safe_snackbar.dart';
+import '../widgets/no_connection_widget.dart';
 import 'pdf_viewer_screen.dart';
 
 class PastPapersScreen extends StatefulWidget {
@@ -133,7 +136,22 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
               ),
             )
           else
-            const SizedBox(width: 44),
+            GestureDetector(
+              onTap: () => Get.back(),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBackground.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: AppTheme.textPrimary,
+                  size: 20,
+                ),
+              ),
+            ),
 
           const Spacer(),
 
@@ -263,7 +281,8 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
       stream: _eczFirestore.collection('grade').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _buildErrorState('Error: ${snapshot.error}');
+          return _buildErrorState(
+              'Unable to load grades. Please check your internet connection.');
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingState();
@@ -414,7 +433,8 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _buildErrorState('Error: ${snapshot.error}');
+          return _buildErrorState(
+              'Unable to load subjects. Please check your internet connection.');
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingState();
@@ -551,7 +571,8 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return _buildErrorState('Error: ${snapshot.error}');
+          return _buildErrorState(
+              'Unable to load papers. Please check your internet connection.');
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingState();
@@ -601,19 +622,28 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
             return _buildPaperCard(
               name: name,
               index: paperIndex,
-              onTap: () {
+              onTap: () async {
                 if (url != null) {
+                  // Check network before trying to open PDF
+                  try {
+                    final results = await Connectivity().checkConnectivity();
+                    if (results.contains(ConnectivityResult.none)) {
+                      showSafeSnackbar(
+                        title: 'No Internet',
+                        message:
+                            'Please connect to the internet to view this PDF.',
+                      );
+                      return;
+                    }
+                  } catch (_) {}
                   Get.to(() => PdfViewerScreen(
                         pdfUrl: url,
                         title: name,
                       ));
                 } else {
-                  Get.snackbar(
-                    'Error',
-                    'PDF URL not available',
-                    backgroundColor: AppTheme.error.withOpacity(0.9),
-                    colorText: Colors.white,
-                    snackPosition: SnackPosition.BOTTOM,
+                  showSafeSnackbar(
+                    title: 'Unavailable',
+                    message: 'This PDF is not available yet.',
                   );
                 }
               },
@@ -723,47 +753,52 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
   Widget _buildNativeAdCard({required int adIndex}) {
     final adsController = GoogleAdsController.instance;
 
-    // Try to get a native ad widget with exact paper card styling
-    final adWidget = adsController.getNativeAdWidget(
-      width: double.infinity,
-      height: 80, // Compact height to match paper card
-      adIndex: adIndex,
-    );
+    return Obx(() {
+      // Access trigger to rebuild on ad changes
+      // ignore: unused_local_variable
+      final _ = adsController.adUpdateTrigger.value;
 
-    // If no ad is available, return empty widget
-    if (adWidget == null) {
-      return const SizedBox.shrink();
-    }
+      // Try to get a native ad widget with exact paper card styling
+      final adWidget = adsController.getNativeAdWidget(
+        width: double.infinity,
+        height: 80, // Compact height to match paper card
+        adIndex: adIndex,
+      );
 
-    // Wrap in exact same styling as paper cards
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(
-          4), // Reduced padding to let ad occupy more space
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.cardBackground.withOpacity(0.9),
-            AppTheme.cardBackgroundLight.withOpacity(0.6),
+      // If no ad is available, return empty widget
+      if (adWidget == null) {
+        return const SizedBox.shrink();
+      }
+
+      // Wrap in exact styling
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.cardBackground.withValues(alpha: 0.9),
+              AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: adWidget,
-    );
+        child: adWidget,
+      );
+    });
   }
 
   Widget _buildLoadingState() {
@@ -824,33 +859,13 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
   }
 
   Widget _buildErrorState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.error.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.error_outline_rounded,
-              size: 48,
-              color: AppTheme.error,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppTheme.error,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+    return NoConnectionWidget(
+      onRetry: () {
+        setState(() {}); // Simple setState retry for StreamBuilders
+      },
+      message: message.contains('internet')
+          ? 'Please check your internet connection and try again.'
+          : message,
     );
   }
 }

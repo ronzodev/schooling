@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import 'package:get/get.dart';
 import '../theme/app_theme.dart';
+import '../widgets/no_connection_widget.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
@@ -18,10 +19,15 @@ class PdfViewerScreen extends StatefulWidget {
 }
 
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
-  int _currentPage = 0;
-  int _totalPages = 0;
-  bool _isReady = false;
-  String? _errorMessage;
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,12 +75,12 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               swipeHorizontal: false,
               autoSpacing: false,
               pageFling: false,
-              fitPolicy: FitPolicy.WIDTH, // Better initial zoom
+              fitPolicy: FitPolicy.WIDTH,
               onError: (error) {
-                print(error.toString());
+                debugPrint('PDF error: $error');
               },
               onPageError: (page, error) {
-                print('$page: ${error.toString()}');
+                debugPrint('PDF page $page error: $error');
               },
             ).cachedFromUrl(
               widget.pdfUrl,
@@ -98,55 +104,26 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                   ],
                 ),
               ),
-              errorWidget: (error) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Failed to load PDF',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        error.toString(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // Force rebuild by navigating again
-                          Get.off(() => PdfViewerScreen(
-                                pdfUrl: widget.pdfUrl,
-                                title: widget.title,
-                              ));
-                        },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurple,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              errorWidget: (error) => _buildErrorUI(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildErrorUI() {
+    return NoConnectionWidget(
+      title: 'Unable to Load PDF',
+      message:
+          'Something went wrong while loading the PDF. Check your connection and try again.',
+      onRetry: () {
+        // Force rebuild by navigating again
+        Get.off(() => PdfViewerScreen(
+              pdfUrl: widget.pdfUrl,
+              title: widget.title,
+            ));
+      },
     );
   }
 }

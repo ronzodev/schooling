@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import '../widgets/safe_ad_widget.dart';
 
+import '../controllers/network_controller.dart';
 import '../theme/app_theme.dart';
 import '../pages/course.dart';
 import '../chem_periodic/periodic.dart';
 import '../math_formula/main_screen.dart';
-import '../solar/solar_system_screen.dart';
-import '../pages/past_papers.dart';
 
-// Native Ad Widget
+// Native Ad Widget — network-aware, auto-reloads on reconnect
 class NativeAdWidget extends StatefulWidget {
   const NativeAdWidget({Key? key}) : super(key: key);
 
@@ -22,48 +23,105 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool _isAdLoaded = false;
 
   //real ad
-  // final String _adUnitId = 'ca-app-pub-9049620363523701/8454585993';
+  final String _adUnitId = 'ca-app-pub-9049620363523701/8454585993';
 
   // test ad
+  // final String _adUnitId = 'ca-app-pub-3940256099942544/2247696110';
 
-  final String _adUnitId = 'ca-app-pub-3940256099942544/2247696110';
+  late Worker _networkListener;
 
   @override
   void initState() {
     super.initState();
-    _loadAd();
+
+    // Only load ad if we have network
+    final networkController = Get.find<NetworkController>();
+    if (networkController.isConnected.value) {
+      _loadAd();
+    }
+
+    // Listen to network changes to reload/dispose ads
+    _networkListener = ever(networkController.isConnected, (bool connected) {
+      if (connected) {
+        // Network restored — reload ad
+        if (!_isAdLoaded) {
+          _loadAd();
+        }
+      } else {
+        // Network lost — dispose broken ad to remove "web page not available"
+        _disposeAd();
+      }
+    });
   }
 
   void _loadAd() {
-    _nativeAd = NativeAd(
-      adUnitId: _adUnitId,
-      factoryId: 'listTile',
-      request: const AdRequest(),
-      listener: NativeAdListener(
-        onAdLoaded: (ad) {
-          setState(() {
-            _isAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (ad, error) {
-          print('Native ad failed to load: $error');
-          ad.dispose();
-        },
-      ),
-    );
+    // Dispose any existing ad first
+    _disposeAd();
 
-    _nativeAd!.load();
+    try {
+      _nativeAd = NativeAd(
+        adUnitId: _adUnitId,
+        factoryId: 'listTile',
+        request: const AdRequest(),
+        listener: NativeAdListener(
+          onAdLoaded: (ad) {
+            if (mounted) {
+              setState(() {
+                _isAdLoaded = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (ad, error) {
+            debugPrint('Native ad failed to load: $error');
+            try {
+              ad.dispose();
+            } catch (_) {}
+            if (mounted) {
+              setState(() {
+                _nativeAd = null;
+                _isAdLoaded = false;
+              });
+            }
+          },
+        ),
+      );
+
+      _nativeAd!.load();
+    } catch (e) {
+      debugPrint('❌ Error creating/loading native ad: $e');
+      _nativeAd = null;
+      if (mounted) {
+        setState(() => _isAdLoaded = false);
+      }
+    }
+  }
+
+  void _disposeAd() {
+    try {
+      _nativeAd?.dispose();
+    } catch (e) {
+      debugPrint('⚠️ Error disposing native ad: $e');
+    }
+    _nativeAd = null;
+    if (mounted) {
+      setState(() {
+        _isAdLoaded = false;
+      });
+    }
   }
 
   @override
   void dispose() {
-    _nativeAd?.dispose();
+    _networkListener.dispose();
+    try {
+      _nativeAd?.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isAdLoaded) {
+    if (!_isAdLoaded || _nativeAd == null) {
       return const SizedBox.shrink();
     }
 
@@ -76,7 +134,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: AdWidget(ad: _nativeAd!),
+        child: SafeAdWidget(ad: _nativeAd!),
       ),
     );
   }
@@ -97,13 +155,12 @@ class _MainScreenState extends State<MainScreen>
     CourseListScreen(),
     ElementsScreen(),
     const MathFormulasScreen(),
-    const PastPapersScreen(),
   ];
 
   final List<NavItem> _navItems = [
     NavItem(
-      icon: Icons.menu_book_rounded,
-      label: 'Courses',
+      icon: Icons.home_rounded,
+      label: 'Home',
       color: AppTheme.accentBlue,
     ),
     NavItem(
@@ -115,11 +172,6 @@ class _MainScreenState extends State<MainScreen>
       icon: Icons.functions_rounded,
       label: 'Formulas',
       color: AppTheme.accentPurple,
-    ),
-    NavItem(
-      icon: Icons.description_rounded,
-      label: 'Papers',
-      color: AppTheme.accentGreen,
     ),
   ];
 

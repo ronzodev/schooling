@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../controllers/notes_controller.dart';
 import '../controllers/ads_controller.dart';
 import '../theme/app_theme.dart';
+import '../utils/safe_snackbar.dart';
+import '../widgets/no_connection_widget.dart';
 
 import 'pdf_viewer_screen.dart';
 
@@ -35,6 +37,12 @@ class NotesScreen extends StatelessWidget {
                   }
 
                   if (controller.courses.isEmpty) {
+                    if (controller.errorMessage.isNotEmpty) {
+                      return NoConnectionWidget(
+                        onRetry: () => controller.fetchNotes(),
+                        message: controller.errorMessage.value,
+                      );
+                    }
                     return const Center(
                       child: Text(
                         'No courses found.',
@@ -179,8 +187,10 @@ class NotesScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        onTap: () {
+        onTap: () async {
           if (link.isNotEmpty) {
+            // Check network before opening PDF
+
             // Increment click count
             NotesScreen._clickCount++;
 
@@ -193,12 +203,19 @@ class NotesScreen extends StatelessWidget {
                       pdfUrl: link,
                       title: title,
                     ));
-                // Clear callback to avoid unwanted trimming
                 GoogleAdsController.instance.onInterstitialClosed = null;
               };
 
-              // Show the ad
-              GoogleAdsController.instance.showInterstitialAd();
+              // Show the ad — wrapped safely
+              try {
+                GoogleAdsController.instance.showInterstitialAd();
+              } catch (e) {
+                debugPrint('⚠️ Error showing interstitial: $e');
+                Get.to(() => PdfViewerScreen(
+                      pdfUrl: link,
+                      title: title,
+                    ));
+              }
             } else {
               // Navigate directly if not 2nd click or ad not ready
               Get.to(() => PdfViewerScreen(
@@ -207,7 +224,10 @@ class NotesScreen extends StatelessWidget {
                   ));
             }
           } else {
-            Get.snackbar('Error', 'Invalid PDF link');
+            showSafeSnackbar(
+              title: 'Unavailable',
+              message: 'This note is not available yet.',
+            );
           }
         },
         leading: Container(

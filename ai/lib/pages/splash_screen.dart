@@ -12,7 +12,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _logoController;
   late AnimationController _textController;
   late AnimationController _backgroundController;
-  
+
   late Animation<double> _logoScaleAnimation;
   late Animation<double> _logoOpacityAnimation;
   late Animation<double> _textOpacityAnimation;
@@ -93,11 +93,10 @@ class _SplashScreenState extends State<SplashScreen>
   void _startAnimations() async {
     // Start background animation immediately
     _backgroundController.forward();
-    
-    // Start logo animation after small delay
+
     await Future.delayed(const Duration(milliseconds: 300));
     _logoController.forward();
-    
+
     // Start text animation after logo
     await Future.delayed(const Duration(milliseconds: 600));
     _textController.forward();
@@ -106,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _initializeApp() async {
     // Wait for animations to complete + extra time for user to see splash
     await Future.delayed(const Duration(milliseconds: 3000));
-    
+
     // Navigate to main screen
     Get.offAll(() => MainScreen());
   }
@@ -122,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: AnimatedBuilder(
         animation: Listenable.merge([
@@ -140,16 +139,20 @@ class _SplashScreenState extends State<SplashScreen>
                 end: Alignment.bottomRight,
                 colors: isDarkMode
                     ? [
-                        Color.lerp(Colors.grey.shade900, Colors.deepPurple.shade900, 
-                                   _backgroundAnimation.value)!,
-                        Color.lerp(Colors.grey.shade800, Colors.indigo.shade900, 
-                                   _backgroundAnimation.value)!,
+                        Color.lerp(
+                            Colors.grey.shade900,
+                            Colors.deepPurple.shade900,
+                            _backgroundAnimation.value)!,
+                        Color.lerp(Colors.grey.shade800, Colors.indigo.shade900,
+                            _backgroundAnimation.value)!,
                       ]
                     : [
-                        Color.lerp(Colors.grey.shade100, Colors.deepPurple.shade700, 
-                                   _backgroundAnimation.value)!,
-                        Color.lerp(Colors.grey.shade200, Colors.indigo.shade700, 
-                                   _backgroundAnimation.value)!,
+                        Color.lerp(
+                            Colors.grey.shade100,
+                            Colors.deepPurple.shade700,
+                            _backgroundAnimation.value)!,
+                        Color.lerp(Colors.grey.shade200, Colors.indigo.shade700,
+                            _backgroundAnimation.value)!,
                       ],
               ),
             ),
@@ -193,16 +196,16 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ),
                           // Logo content
-                         Center(
+                          Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.asset("assets/images/icon1.png",
+                                Image.asset(
+                                  "assets/images/icon1.png",
                                   width: 100,
                                   height: 100,
                                 ),
                                 const SizedBox(height: 4),
-                               
                               ],
                             ),
                           ),
@@ -211,9 +214,9 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // App Name and Tagline Section
                 SlideTransition(
                   position: _textSlideAnimation,
@@ -228,7 +231,6 @@ class _SplashScreenState extends State<SplashScreen>
                           'Past Paper Solutions',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            
                             fontSize: 42,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -242,9 +244,9 @@ class _SplashScreenState extends State<SplashScreen>
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 12),
-                        
+
                         // Tagline
                         Text(
                           'Learn • Practice • Excel',
@@ -255,9 +257,9 @@ class _SplashScreenState extends State<SplashScreen>
                             letterSpacing: 2.0,
                           ),
                         ),
-                        
+
                         const SizedBox(height: 8),
-                        
+
                         // Subject icons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -275,9 +277,9 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // Loading indicator
                 FadeTransition(
                   opacity: _textOpacityAnimation,

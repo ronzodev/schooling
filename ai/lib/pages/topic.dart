@@ -8,6 +8,7 @@ import '../controllers/ads_controller.dart';
 import '../controllers/topic_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/icon_helper.dart';
+import '../widgets/no_connection_widget.dart';
 
 class TopicListScreen extends StatefulWidget {
   final String courseId;
@@ -184,6 +185,12 @@ class _TopicListScreenState extends State<TopicListScreen> {
     }
 
     if (topicController.topics.isEmpty) {
+      if (topicController.errorMessage.isNotEmpty) {
+        return NoConnectionWidget(
+          onRetry: () => topicController.refreshTopics(),
+          message: topicController.errorMessage.value,
+        );
+      }
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -340,37 +347,45 @@ class _TopicListScreenState extends State<TopicListScreen> {
 
   Widget _buildNativeAdCard(int index) {
     final adsController = GoogleAdsController.instance;
-    final adWidget = adsController.getNativeAdWidget(
-      width: 320,
-      height: 250, // Increased height for Medium template
-      adIndex: index,
-    );
 
-    if (adWidget == null) return const SizedBox.shrink();
+    // Use Obx to rebuild when ads are loaded/disposed
+    return Obx(() {
+      // Access the trigger to ensure rebuild
+      // ignore: unused_local_variable
+      final _ = adsController.adUpdateTrigger.value;
 
-    return Container(
-      width: 320,
-      height: 250, // Increased height
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2E), // Match native ad background
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+      final adWidget = adsController.getNativeAdWidget(
+        width: 320,
+        height: 250,
+        adIndex: index,
+      );
+
+      if (adWidget == null) return const SizedBox.shrink();
+
+      return Container(
+        width: 320,
+        height: 250,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E2E), // Match native ad background
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
           ),
-        ],
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
         ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: adWidget,
-      ),
-    );
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: adWidget,
+        ),
+      );
+    });
   }
 }
 

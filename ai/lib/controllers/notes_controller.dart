@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'package:ai/utils/safe_snackbar.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class NotesController extends GetxController {
   // Notes are now a list of Course documents, each containing a list of files
   var courses = <Map<String, dynamic>>[].obs;
   var isLoading = true.obs;
-  var isSeeding = false.obs;
+  var errorMessage = ''.obs;
 
   @override
   void onInit() {
@@ -17,16 +19,55 @@ class NotesController extends GetxController {
   Future<void> fetchNotes() async {
     try {
       isLoading(true);
+      errorMessage(''); // Clear previous error
+
+      // Check connectivity first to fail fast if offline
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        // If strict offline (and assuming no persistence for initial fetch or if we want to show error)
+        // Actually, if we want to rely on persistence, we should let Firestore try.
+        // But the user complains about "rotating".
+        // If we throw here, we show error.
+        // But we should ONLY throw if we don't have cache?
+        // Firestore persistence is opaque.
+        // But usually: if offline, Firestore returns cache immediately if available.
+        // If it hangs, it means it's trying to connect.
+        // Let's set a timeout? Or just show error if offline?
+        // User asked for "no connection screen".
+        // Let's throw error if offline, but only if we plan to block UI.
+        // Wait, if I throw error, UI shows NoConnectionWidget (per my previous fix).
+        // If we have cache, we WANT to show data.
+        // So we should try to get data from cache explicitly?
+        try {
+          final cacheSnapshot =
+              await FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'))
+                  .collection('notes')
+                  .get(const GetOptions(source: Source.cache));
+          if (cacheSnapshot.docs.isNotEmpty) {
+            // We have cache! Use it.
+            // Proceed to map data
+            courses.value = cacheSnapshot.docs.map((doc) {
+              var data = doc.data();
+              data['id'] = doc.id;
+              data['courseName'] = doc.id;
+              return data;
+            }).toList();
+            return; // Done
+          }
+        } catch (_) {
+          // No cache available.
+          throw 'No internet connection and no cached notes.';
+        }
+      }
+
       final pamphletFirestore =
           FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
 
       final snapshot = await pamphletFirestore.collection('notes').get();
 
       if (snapshot.docs.isEmpty) {
-        // Automatically seed if empty
-        await seedNotes();
-        // Fetch again after seeding
-        fetchNotes();
+        courses.clear(); // Ensure list is empty
+        errorMessage('No notes found.');
         return;
       }
 
@@ -39,96 +80,14 @@ class NotesController extends GetxController {
       }).toList();
     } catch (e) {
       print("Error fetching notes: $e");
-      Get.snackbar('Error', 'Failed to load notes: $e');
+      errorMessage(
+          'Unable to load notes. Please check your internet connection.');
+      showSafeSnackbar(
+          title: 'Offline',
+          message:
+              'Unable to load notes. Please check your internet connection.');
     } finally {
       isLoading(false);
-    }
-  }
-
-  Future<void> seedNotes() async {
-    try {
-      isSeeding(true);
-      final pamphletFirestore =
-          FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'));
-
-      // 5 Specific Courses
-      final coursesToSeed = [
-        'Mathematics',
-        'Biology',
-        'English',
-        'Chemistry',
-        'Physics'
-      ];
-
-      final batch = pamphletFirestore.batch();
-
-      for (var courseName in coursesToSeed) {
-        final docRef = pamphletFirestore.collection('notes').doc(courseName);
-
-        // Sample PDF links (using placeholders or reliable test PDFs)
-        // In a real scenario, these would be actual Firebase Storage links
-        final sampleFiles = [
-          {
-            'index': 1,
-            'title': 'Chapter 1: Introduction',
-            'link':
-                'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-          },
-          {
-            'index': 2,
-            'title': 'Chapter 2: Advanced Topics',
-            'link': 'https://www.africau.edu/images/default/sample.pdf'
-          },
-        ];
-
-        batch.set(docRef, {
-          'courseName': courseName,
-          'files': sampleFiles,
-          'icon': _getIconForCourse(courseName),
-          'color': _getColorForCourse(courseName),
-        });
-      }
-
-      await batch.commit();
-      print("Seeding complete!");
-    } catch (e) {
-      print("Error seeding notes: $e");
-    } finally {
-      isSeeding(false);
-    }
-  }
-
-  String _getIconForCourse(String course) {
-    switch (course) {
-      case 'Mathematics':
-        return 'functions_rounded';
-      case 'Biology':
-        return 'eco_rounded';
-      case 'English':
-        return 'menu_book_rounded';
-      case 'Chemistry':
-        return 'science_rounded'; // Flask icon
-      case 'Physics':
-        return 'bolt_rounded'; // Example for Physics
-      default:
-        return 'folder_rounded';
-    }
-  }
-
-  String _getColorForCourse(String course) {
-    switch (course) {
-      case 'Mathematics':
-        return 'accentBlue';
-      case 'Biology':
-        return 'accentGreen';
-      case 'English':
-        return 'accentPink';
-      case 'Chemistry':
-        return 'accentPurple';
-      case 'Physics':
-        return 'accentOrange';
-      default:
-        return 'accentBlue';
     }
   }
 }

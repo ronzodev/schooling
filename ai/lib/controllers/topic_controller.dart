@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:ai/utils/safe_snackbar.dart';
 
 class TopicController extends GetxController {
   var topics = <Map<String, dynamic>>[].obs;
@@ -136,11 +138,11 @@ class TopicController extends GetxController {
   }
 
   void _handleTopicsError(dynamic error) {
-    errorMessage('Failed to load topics: ${error.toString()}');
-    Get.snackbar(
-      'Error',
-      'Failed to load topics: ${error.toString()}',
-      snackPosition: SnackPosition.BOTTOM,
+    debugPrint('Topic error: $error');
+    errorMessage('Unable to load topics. Please check your connection.');
+    showSafeSnackbar(
+      title: 'Offline',
+      message: 'Unable to load topics. Please check your internet connection.',
     );
     if (topics.isEmpty) {
       isLoading(false);
@@ -181,11 +183,11 @@ class TopicController extends GetxController {
 
         await _handleTopicsUpdate(querySnapshot, currentCourseId!);
       } catch (e) {
-        errorMessage('Failed to refresh: ${e.toString()}');
-        Get.snackbar(
-          'Error',
-          'Failed to refresh topics: ${e.toString()}',
-          snackPosition: SnackPosition.BOTTOM,
+        errorMessage('Unable to refresh. Please check your connection.');
+        showSafeSnackbar(
+          title: 'Offline',
+          message:
+              'Unable to refresh topics. Please check your internet connection.',
         );
       } finally {
         isLoading(false);

@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AppOpenController extends GetxController {
   // reall ad
-  //  String adUnitId = 'ca-app-pub-9049620363523701/1731728226';
+  String adUnitId = 'ca-app-pub-9049620363523701/5286643046';
 
   //test ad
 
-  String adUnitId = 'ca-app-pub-3940256099942544/9257395921';
+  // String adUnitId = 'ca-app-pub-3940256099942544/9257395921';
 
   int _adCounter = 0;
   bool _isAdLoaded = false;

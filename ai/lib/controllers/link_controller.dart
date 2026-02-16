@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ai/utils/safe_snackbar.dart';
 
 class LinksController extends GetxController {
   // Use Pamphlet Firebase app for links
@@ -55,17 +56,15 @@ class LinksController extends GetxController {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        Get.snackbar(
-          'Error',
-          'Could not launch $url',
-          snackPosition: SnackPosition.BOTTOM,
+        showSafeSnackbar(
+          title: 'Error',
+          message: 'Could not launch $url',
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to open link: $e',
-        snackPosition: SnackPosition.BOTTOM,
+      showSafeSnackbar(
+        title: 'Error',
+        message: 'Failed to open link: $e',
       );
     }
   }
