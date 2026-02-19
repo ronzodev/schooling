@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'dart:io';
 import '../widgets/safe_ad_widget.dart';
 
 import '../controllers/network_controller.dart';
@@ -22,11 +23,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   NativeAd? _nativeAd;
   bool _isAdLoaded = false;
 
-  //real ad
-  final String _adUnitId = 'ca-app-pub-9049620363523701/8454585993';
-
-  // test ad
-  // final String _adUnitId = 'ca-app-pub-3940256099942544/2247696110';
+  // Get ad unit ID based on platform
+  String get _adUnitId => Platform.isAndroid
+      ? 'ca-app-pub-9049620363523701/8454585993' // Android real ad
+      : 'ca-app-pub-9049620363523701/4424075409'; // iOS real ad
 
   late Worker _networkListener;
 

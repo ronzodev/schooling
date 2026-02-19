@@ -2,10 +2,16 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 
 class AppOpenController extends GetxController {
-  // reall ad
-  String adUnitId = 'ca-app-pub-9049620363523701/5286643046';
+  // Real Ad Unit ID (Android)
+  static const String _androidAdUnitId =
+      'ca-app-pub-9049620363523701/5286643046';
+  // Test Ad Unit ID (iOS) - TODO: Replace with real iOS ID
+  static const String _iosAdUnitId = 'ca-app-pub-9049620363523701/7031716008';
+
+  String get adUnitId => Platform.isAndroid ? _androidAdUnitId : _iosAdUnitId;
 
   //test ad
 

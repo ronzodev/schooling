@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import '../widgets/safe_ad_widget.dart';
@@ -13,16 +14,33 @@ class GoogleAdsController {
 
   GoogleAdsController._internal();
 
-  // Ad Unit IDs - Replace with your actual ad unit IDs
-  static const String _interstitialAdUnitId =
-      'ca-app-pub-9049620363523701/1707308928'; // Real ad
-  static const String _bannerAdUnitId =
-      'ca-app-pub-3940256099942544/6300978111'; // Test ID
-  static const String _nativeAdUnitId =
-      'ca-app-pub-9049620363523701/8454585993'; // real ad
+  // Ad Unit IDs (Android - Real)
+  static const String _androidInterstitialAdUnitId =
+      'ca-app-pub-9049620363523701/1707308928';
+  static const String _androidBannerAdUnitId =
+      'ca-app-pub-3940256099942544/6300978111'; // Test ID for now, replace if you have real one
+  static const String _androidNativeAdUnitId =
+      'ca-app-pub-9049620363523701/8454585993';
 
-// real ads
-  // static const String _interstitialAdUnitId = 'ca-app-pub-9049620363523701/1707308928';
+  // Ad Unit IDs (iOS - Test IDs)
+  // TODO: Replace with your actual iOS Ad Unit IDs
+  static const String _iosInterstitialAdUnitId =
+      'ca-app-pub-9049620363523701/9845581606';
+  static const String _iosBannerAdUnitId =
+      'ca-app-pub-3940256099942544/2934735716';
+  static const String _iosNativeAdUnitId =
+      'ca-app-pub-9049620363523701/4424075409';
+
+  // Getters for current platform
+  String get _interstitialAdUnitId => Platform.isAndroid
+      ? _androidInterstitialAdUnitId
+      : _iosInterstitialAdUnitId;
+
+  String get _bannerAdUnitId =>
+      Platform.isAndroid ? _androidBannerAdUnitId : _iosBannerAdUnitId;
+
+  String get _nativeAdUnitId =>
+      Platform.isAndroid ? _androidNativeAdUnitId : _iosNativeAdUnitId;
 
   // Ad instances
   InterstitialAd? _interstitialAd;
