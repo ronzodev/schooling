@@ -27,22 +27,22 @@ class PamphletFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyABwmdF87dOyo3cdRu0bWSVV-aUTUPXDJo',
-    appId: '1:612520926911:android:fb6eafd60bddcb4c53b00a',
+    apiKey: 'AIzaSyABwmdF87dOyo3cdRuObWSVV-aUTUPXDJo',
+    appId: '1:612520926911:android:e950eade4ba216f353b00a',
     messagingSenderId: '612520926911',
     projectId: 'pamphlet-471f2',
     storageBucket: 'pamphlet-471f2.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyABwmdF87dOyo3cdRu0bWSVV-aUTUPXDJo',
-    appId:
-        '1:612520926911:ios:fb6eafd60bddcb4c53b00a', // Update if you have iOS config
+    apiKey: 'AIzaSyCzfpBURenGI04-gbkOG6beh8rdZ3LPUZ4',
+    appId: '1:612520926911:ios:222697efe8f01bf353b00a',
     messagingSenderId: '612520926911',
     projectId: 'pamphlet-471f2',
     storageBucket: 'pamphlet-471f2.firebasestorage.app',
     iosBundleId: 'com.ronzodev.solveit',
   );
+
 }
 
 /// Firebase options for the ECZ project (grades, subjects, past papers).
