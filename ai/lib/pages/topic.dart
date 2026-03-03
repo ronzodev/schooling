@@ -275,7 +275,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
             ? maxRotateZAngle * (1 - progress)
             : isNextPageAnimating
                 ? maxRotateZAngle * progress
-                : 0;
+                : 0.0;
 
         const maxScale = 1.15;
         final double scaleValue = isCurrentPageAnimating
@@ -284,12 +284,33 @@ class _TopicListScreenState extends State<TopicListScreen> {
                 ? 1 + (maxScale - 1) * progress
                 : 1;
 
-        bool showFront = rotateXAngle > -90 && rotateXAngle < 90;
-
         // Check if this index is an ad
         // Indices: 0, 1, 2, 3(Ad), 4, 5, 6, 7(Ad)...
         // (index + 1) % 4 == 0 means it's an ad
         final isAd = (index + 1) % 4 == 0;
+
+        // Dampen rotation for ads, especially when focused or near focus
+        double finalRotateZ = rotateZAngle.toDouble();
+        double finalRotateX = rotateXAngle.toDouble();
+
+        if (isAd) {
+          // If it's an ad and it's becomes the primary focus, flatten it
+          // This ensures the AdMob validator doesn't trigger for skewed content
+          final double focusFactor = (isCurrentPageAnimating
+              ? progress
+              : (isNextPageAnimating ? (1 - progress) : 1.0));
+          // If focusFactor is 0, it means it's perfectly centered
+          finalRotateZ = rotateZAngle * (1 - (1 - focusFactor).clamp(0, 1));
+          finalRotateX = rotateXAngle * (1 - (1 - focusFactor).clamp(0, 1));
+
+          // Even simpler approach: if it's anywhere near focused, just flatten it
+          if (focusFactor < 0.2) {
+            finalRotateZ = 0;
+            finalRotateX = 0;
+          }
+        }
+
+        bool showFront = finalRotateX > -90 && finalRotateX < 90;
 
         // Calculate the actual topic index
         // If index is 3 (ad), topics before it are 0, 1, 2.
@@ -325,8 +346,8 @@ class _TopicListScreenState extends State<TopicListScreen> {
               alignment: Alignment.center,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, .001)
-                ..rotateZ(rotateZAngle * math.pi / 180)
-                ..rotateX(rotateXAngle * math.pi / 180)
+                ..rotateZ(finalRotateZ * math.pi / 180)
+                ..rotateX(finalRotateX * math.pi / 180)
                 ..scale(scaleValue, scaleValue),
               child: isAd
                   ? _buildNativeAdCard(index ~/ 4) // Pass ad index
@@ -356,7 +377,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
 
       final adWidget = adsController.getNativeAdWidget(
         width: 320,
-        height: 250,
+        height: 320, // Increased from 250 to 320
         adIndex: index,
       );
 
@@ -364,7 +385,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
 
       return Container(
         width: 320,
-        height: 250,
+        height: 320, // Increased from 250 to 320
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E2E), // Match native ad background
@@ -409,7 +430,7 @@ class _TopicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const cardWidth = 320.0;
-    const cardHeight = 250.0; // Increased from 200 to 250 to fit Medium Ad
+    const cardHeight = 320.0; // Increased to 320 for consistency with ad cards
 
     return Container(
       width: cardWidth,

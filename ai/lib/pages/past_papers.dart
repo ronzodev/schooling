@@ -761,7 +761,7 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
       // Try to get a native ad widget with exact paper card styling
       final adWidget = adsController.getNativeAdWidget(
         width: double.infinity,
-        height: 80, // Compact height to match paper card
+        height: 320, // Increased to 320 to match Medium template requirements
         adIndex: adIndex,
       );
 

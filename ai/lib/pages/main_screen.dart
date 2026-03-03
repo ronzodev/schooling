@@ -127,7 +127,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      height: 65,
+      height:
+          150, // Increased from 65 to 150 to prevent clipping of NativeAdView.xib
       decoration: BoxDecoration(
         color: AppTheme.cardBackground.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),

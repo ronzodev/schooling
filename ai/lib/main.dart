@@ -21,11 +21,14 @@ void main() async {
   ]);
 
   // Initialize default Firebase app (ECZ - the google-services.json is for ECZ)
-  // This app is auto-initialized by google-services.json, so just ensure it exists
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-      options: EczFirebaseOptions.currentPlatform,
-    );
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: EczFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    debugPrint("Firebase default app already initialized or failed: $e");
   }
 
   // Initialize secondary Firebase app (Pamphlet - for courses, topics, questions)
