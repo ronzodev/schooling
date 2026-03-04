@@ -82,7 +82,7 @@ class CustomDrawer extends StatelessWidget {
             _buildDrawerItem(
               icon: Icons.share_rounded,
               title: 'Share App',
-              onTap: () => shareApp(),
+              onTap: () => shareApp(context),
             ),
             _buildDrawerItem(
               icon: Icons.privacy_tip_rounded,
@@ -186,9 +186,13 @@ class CustomDrawer extends StatelessWidget {
   }
 
   // share app link
-  void shareApp() {
+  void shareApp(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
     Share.share(
-        'https://play.google.com/store/apps/details?id=com.ronzodev.solveit');
+      'https://play.google.com/store/apps/details?id=com.ronzodev.solveit',
+      sharePositionOrigin:
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+    );
   }
 
   // Helper method to get appropriate icons for social platforms

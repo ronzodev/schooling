@@ -1,145 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
-import 'dart:io';
-import '../widgets/safe_ad_widget.dart';
 
-import '../controllers/network_controller.dart';
 import '../theme/app_theme.dart';
 import '../pages/course.dart';
 import '../chem_periodic/periodic.dart';
 import '../math_formula/main_screen.dart';
-
-// Native Ad Widget — network-aware, auto-reloads on reconnect
-class NativeAdWidget extends StatefulWidget {
-  const NativeAdWidget({Key? key}) : super(key: key);
-
-  @override
-  State<NativeAdWidget> createState() => _NativeAdWidgetState();
-}
-
-class _NativeAdWidgetState extends State<NativeAdWidget> {
-  NativeAd? _nativeAd;
-  bool _isAdLoaded = false;
-
-  // Get ad unit ID based on platform
-  String get _adUnitId => Platform.isAndroid
-      ? 'ca-app-pub-9049620363523701/8454585993' // Android real ad
-      : 'ca-app-pub-9049620363523701/4424075409'; // iOS real ad
-
-  late Worker _networkListener;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Only load ad if we have network
-    final networkController = Get.find<NetworkController>();
-    if (networkController.isConnected.value) {
-      _loadAd();
-    }
-
-    // Listen to network changes to reload/dispose ads
-    _networkListener = ever(networkController.isConnected, (bool connected) {
-      if (connected) {
-        // Network restored — reload ad
-        if (!_isAdLoaded) {
-          _loadAd();
-        }
-      } else {
-        // Network lost — dispose broken ad to remove "web page not available"
-        _disposeAd();
-      }
-    });
-  }
-
-  void _loadAd() {
-    // Dispose any existing ad first
-    _disposeAd();
-
-    try {
-      _nativeAd = NativeAd(
-        adUnitId: _adUnitId,
-        factoryId: 'listTile',
-        request: const AdRequest(),
-        listener: NativeAdListener(
-          onAdLoaded: (ad) {
-            if (mounted) {
-              setState(() {
-                _isAdLoaded = true;
-              });
-            }
-          },
-          onAdFailedToLoad: (ad, error) {
-            debugPrint('Native ad failed to load: $error');
-            try {
-              ad.dispose();
-            } catch (_) {}
-            if (mounted) {
-              setState(() {
-                _nativeAd = null;
-                _isAdLoaded = false;
-              });
-            }
-          },
-        ),
-      );
-
-      _nativeAd!.load();
-    } catch (e) {
-      debugPrint('❌ Error creating/loading native ad: $e');
-      _nativeAd = null;
-      if (mounted) {
-        setState(() => _isAdLoaded = false);
-      }
-    }
-  }
-
-  void _disposeAd() {
-    try {
-      _nativeAd?.dispose();
-    } catch (e) {
-      debugPrint('⚠️ Error disposing native ad: $e');
-    }
-    _nativeAd = null;
-    if (mounted) {
-      setState(() {
-        _isAdLoaded = false;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _networkListener.dispose();
-    try {
-      _nativeAd?.dispose();
-    } catch (_) {}
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isAdLoaded || _nativeAd == null) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      height:
-          150, // Increased from 65 to 150 to prevent clipping of NativeAdView.xib
-      decoration: BoxDecoration(
-        color: AppTheme.cardBackground.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SafeAdWidget(ad: _nativeAd!),
-      ),
-    );
-  }
-}
 
 // Main Screen with Playful Design
 class MainScreen extends StatefulWidget {
@@ -205,9 +70,6 @@ class _MainScreenState extends State<MainScreen>
             Expanded(
               child: _screens[_selectedIndex],
             ),
-
-            // Native Ad positioned above bottom nav
-            const NativeAdWidget(),
 
             // Bottom Navigation
             _buildBottomNav(),

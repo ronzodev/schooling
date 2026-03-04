@@ -68,10 +68,9 @@
                     <nil key="highlightedColor"/>
                 </label>
                 <view contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="fNp-yu-K4i" customClass="GADMediaView">
-                    <rect key="frame" x="62.5" y="102" width="250" height="150"/>
+                    <rect key="frame" x="20" y="102" width="335" height="150"/>
                     <constraints>
                         <constraint firstAttribute="height" priority="750" constant="150" id="71m-kn-7Ug"/>
-                        <constraint firstAttribute="width" constant="250" id="e3T-fD-di4"/>
                     </constraints>
                 </view>
                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Ad" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lp1-oz-XOs">
@@ -103,7 +102,8 @@
                 <constraint firstItem="2Of-AP-0h9" firstAttribute="leading" secondItem="GTT-Yh-eSq" secondAttribute="trailing" id="Med-Nd-wEo"/>
                 <constraint firstItem="beR-eV-DX1" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" constant="10" id="Mvs-eV-Wzb"/>
                 <constraint firstItem="Ysb-of-cat" firstAttribute="centerY" secondItem="hwF-UL-Q8H" secondAttribute="centerY" id="Rud-i8-Myz"/>
-                <constraint firstItem="fNp-yu-K4i" firstAttribute="centerX" secondItem="iN0-l3-epB" secondAttribute="centerX" id="TYN-lq-3DK"/>
+                <constraint firstItem="fNp-yu-K4i" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" constant="20" id="Ld-hf-6Nl"/>
+                <constraint firstItem="iN0-l3-epB" firstAttribute="trailing" secondItem="fNp-yu-K4i" secondAttribute="trailing" constant="20" id="Tr-hf-6Nr"/>
                 <constraint firstItem="fNp-yu-K4i" firstAttribute="top" secondItem="PEQ-D9-2Vv" secondAttribute="bottom" constant="5" id="V0m-hf-6NS"/>
                 <constraint firstItem="GTT-Yh-eSq" firstAttribute="centerY" secondItem="2Of-AP-0h9" secondAttribute="centerY" id="YgR-kp-age"/>
                 <constraint firstItem="hwF-UL-Q8H" firstAttribute="leading" secondItem="Ysb-of-cat" secondAttribute="trailing" constant="10" id="aLb-sm-wAb"/>

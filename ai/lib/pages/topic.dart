@@ -4,7 +4,6 @@ import 'package:ai/pages/questions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../controllers/ads_controller.dart';
 import '../controllers/topic_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/icon_helper.dart';
@@ -228,12 +227,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
       );
     }
 
-    // Calculate total items including ads
-    // We insert an ad after every 3 topics
-    // Pattern: T T T A T T T A ...
-    final int topicCount = topicController.topics.length;
-    final int adCount = topicCount ~/ 3;
-    final int totalItems = topicCount + adCount;
+    final int totalItems = topicController.topics.length;
 
     return PageView.builder(
       itemCount: totalItems,
@@ -284,53 +278,15 @@ class _TopicListScreenState extends State<TopicListScreen> {
                 ? 1 + (maxScale - 1) * progress
                 : 1;
 
-        // Check if this index is an ad
-        // Indices: 0, 1, 2, 3(Ad), 4, 5, 6, 7(Ad)...
-        // (index + 1) % 4 == 0 means it's an ad
-        final isAd = (index + 1) % 4 == 0;
-
-        // Dampen rotation for ads, especially when focused or near focus
-        double finalRotateZ = rotateZAngle.toDouble();
-        double finalRotateX = rotateXAngle.toDouble();
-
-        if (isAd) {
-          // If it's an ad and it's becomes the primary focus, flatten it
-          // This ensures the AdMob validator doesn't trigger for skewed content
-          final double focusFactor = (isCurrentPageAnimating
-              ? progress
-              : (isNextPageAnimating ? (1 - progress) : 1.0));
-          // If focusFactor is 0, it means it's perfectly centered
-          finalRotateZ = rotateZAngle * (1 - (1 - focusFactor).clamp(0, 1));
-          finalRotateX = rotateXAngle * (1 - (1 - focusFactor).clamp(0, 1));
-
-          // Even simpler approach: if it's anywhere near focused, just flatten it
-          if (focusFactor < 0.2) {
-            finalRotateZ = 0;
-            finalRotateX = 0;
-          }
-        }
-
-        bool showFront = finalRotateX > -90 && finalRotateX < 90;
-
-        // Calculate the actual topic index
-        // If index is 3 (ad), topics before it are 0, 1, 2.
-        // If index is 4 (topic), effective topic index is 3.
-        // Ad count before this index = index ~/ 4
-        final topicIndex = index - (index ~/ 4);
-
-        // Gradient for topic cards
-        final gradient = isAd
-            ? AppTheme.blueGradient
-            : gradientPalette[topicIndex % gradientPalette.length];
-
-        final icon = isAd
-            ? Icons.topic // Placeholder
-            : IconHelper.getIconForTopic(
-                topicController.topics[topicIndex]['title'] ?? '');
+        final topicIndex = index;
+        final gradient = gradientPalette[topicIndex % gradientPalette.length];
+        final icon = IconHelper.getIconForTopic(
+            topicController.topics[topicIndex]['title'] ?? '');
+        bool showFront = rotateXAngle > -90 && rotateXAngle < 90;
 
         return GestureDetector(
           onTap: () {
-            if (!isAd && (isCurrentPageAnimating || isNextPageAnimating)) {
+            if (isCurrentPageAnimating || isNextPageAnimating) {
               final topic = topicController.topics[topicIndex];
               Get.to(
                 () => QuestionListScreen(
@@ -346,67 +302,22 @@ class _TopicListScreenState extends State<TopicListScreen> {
               alignment: Alignment.center,
               transform: Matrix4.identity()
                 ..setEntry(3, 2, .001)
-                ..rotateZ(finalRotateZ * math.pi / 180)
-                ..rotateX(finalRotateX * math.pi / 180)
+                ..rotateZ(rotateZAngle * math.pi / 180)
+                ..rotateX(rotateXAngle * math.pi / 180)
                 ..scale(scaleValue, scaleValue),
-              child: isAd
-                  ? _buildNativeAdCard(index ~/ 4) // Pass ad index
-                  : _TopicCard(
-                      topic: topicController.topics[topicIndex],
-                      showFront: showFront,
-                      isFocused: isCurrentPageAnimating || isNextPageAnimating,
-                      gradient: gradient,
-                      icon: icon,
-                      index: topicIndex,
-                    ),
+              child: _TopicCard(
+                topic: topicController.topics[topicIndex],
+                showFront: showFront,
+                isFocused: isCurrentPageAnimating || isNextPageAnimating,
+                gradient: gradient,
+                icon: icon,
+                index: topicIndex,
+              ),
             ),
           ),
         );
       },
     );
-  }
-
-  Widget _buildNativeAdCard(int index) {
-    final adsController = GoogleAdsController.instance;
-
-    // Use Obx to rebuild when ads are loaded/disposed
-    return Obx(() {
-      // Access the trigger to ensure rebuild
-      // ignore: unused_local_variable
-      final _ = adsController.adUpdateTrigger.value;
-
-      final adWidget = adsController.getNativeAdWidget(
-        width: 320,
-        height: 320, // Increased from 250 to 320
-        adIndex: index,
-      );
-
-      if (adWidget == null) return const SizedBox.shrink();
-
-      return Container(
-        width: 320,
-        height: 320, // Increased from 250 to 320
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2E), // Match native ad background
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-          border: Border.all(
-            color: Colors.white.withOpacity(0.1),
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: adWidget,
-        ),
-      );
-    });
   }
 }
 
@@ -430,7 +341,7 @@ class _TopicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const cardWidth = 320.0;
-    const cardHeight = 320.0; // Increased to 320 for consistency with ad cards
+    const cardHeight = 320.0;
 
     return Container(
       width: cardWidth,
@@ -522,7 +433,7 @@ class _TopicCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
                         ),
-                        maxLines: 2, // Reduced from 3 to prevent overflow
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),

@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 import '../theme/app_theme.dart';
-import '../controllers/ads_controller.dart';
 import '../utils/safe_snackbar.dart';
 import '../widgets/no_connection_widget.dart';
 import 'pdf_viewer_screen.dart';
@@ -53,11 +52,6 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
     return WillPopScope(
       onWillPop: () async {
         if (_currentLevel > 0) {
-          // Trigger interstitial ad when going back from Subjects (Level 1) to Grades (Level 0)
-          if (_currentLevel == 1) {
-            GoogleAdsController.instance.showInterstitialAd();
-          }
-
           setState(() {
             _currentLevel--;
             if (_currentLevel == 1) {
@@ -105,11 +99,6 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
           if (_currentLevel > 0)
             GestureDetector(
               onTap: () {
-                // Trigger interstitial ad when going back from Subjects (Level 1) to Grades (Level 0)
-                if (_currentLevel == 1) {
-                  GoogleAdsController.instance.showInterstitialAd();
-                }
-
                 setState(() {
                   _currentLevel--;
                   if (_currentLevel == 1) {
@@ -586,32 +575,14 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
           );
         }
 
-        // Calculate total items (papers + ads)
         final paperCount = docs.length;
-        final adInterval = 3; // Show ad every 3 papers
-        final adCount = (paperCount / adInterval).floor();
-        final totalItems = paperCount + adCount;
+        final totalItems = paperCount;
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: totalItems,
           itemBuilder: (context, index) {
-            // Calculate if this position should be an ad
-            final adPositions = <int>{};
-            for (int i = 1; i <= adCount; i++) {
-              adPositions.add((i * adInterval) + (i - 1));
-            }
-
-            // Show ad at calculated positions
-            if (adPositions.contains(index)) {
-              final adNumber = adPositions.toList().indexOf(index);
-              return _buildNativeAdCard(adIndex: adNumber);
-            }
-
-            // Calculate actual paper index (accounting for ads)
-            final adsBeforeThisIndex =
-                adPositions.where((pos) => pos < index).length;
-            final paperIndex = index - adsBeforeThisIndex;
+            final paperIndex = index;
 
             if (paperIndex >= paperCount) return const SizedBox.shrink();
 
@@ -748,57 +719,6 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildNativeAdCard({required int adIndex}) {
-    final adsController = GoogleAdsController.instance;
-
-    return Obx(() {
-      // Access trigger to rebuild on ad changes
-      // ignore: unused_local_variable
-      final _ = adsController.adUpdateTrigger.value;
-
-      // Try to get a native ad widget with exact paper card styling
-      final adWidget = adsController.getNativeAdWidget(
-        width: double.infinity,
-        height: 320, // Increased to 320 to match Medium template requirements
-        adIndex: adIndex,
-      );
-
-      // If no ad is available, return empty widget
-      if (adWidget == null) {
-        return const SizedBox.shrink();
-      }
-
-      // Wrap in exact styling
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.cardBackground.withValues(alpha: 0.9),
-              AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: adWidget,
-      );
-    });
   }
 
   Widget _buildLoadingState() {
