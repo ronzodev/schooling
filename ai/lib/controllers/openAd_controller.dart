@@ -15,7 +15,7 @@ class AppOpenController extends GetxController {
 
   //test ad
 
-  // String adUnitId = 'ca-app-pub-3940256099942544/9257395921';
+  // String _androidAdUnitId = 'ca-app-pub-3940256099942544/9257395921';
 
   int _adCounter = 0;
   bool _isAdLoaded = false;

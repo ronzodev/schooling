@@ -16,6 +16,16 @@ class NotesController extends GetxController {
     fetchNotes();
   }
 
+  /// Deep-copies a value from Firestore so all maps/lists are mutable.
+  dynamic _deepCopy(dynamic value) {
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(key as String, _deepCopy(val)));
+    } else if (value is List) {
+      return value.map((item) => _deepCopy(item)).toList();
+    }
+    return value;
+  }
+
   Future<void> fetchNotes() async {
     try {
       isLoading(true);
@@ -24,30 +34,15 @@ class NotesController extends GetxController {
       // Check connectivity first to fail fast if offline
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult.contains(ConnectivityResult.none)) {
-        // If strict offline (and assuming no persistence for initial fetch or if we want to show error)
-        // Actually, if we want to rely on persistence, we should let Firestore try.
-        // But the user complains about "rotating".
-        // If we throw here, we show error.
-        // But we should ONLY throw if we don't have cache?
-        // Firestore persistence is opaque.
-        // But usually: if offline, Firestore returns cache immediately if available.
-        // If it hangs, it means it's trying to connect.
-        // Let's set a timeout? Or just show error if offline?
-        // User asked for "no connection screen".
-        // Let's throw error if offline, but only if we plan to block UI.
-        // Wait, if I throw error, UI shows NoConnectionWidget (per my previous fix).
-        // If we have cache, we WANT to show data.
-        // So we should try to get data from cache explicitly?
         try {
           final cacheSnapshot =
               await FirebaseFirestore.instanceFor(app: Firebase.app('pamphlet'))
                   .collection('notes')
                   .get(const GetOptions(source: Source.cache));
           if (cacheSnapshot.docs.isNotEmpty) {
-            // We have cache! Use it.
-            // Proceed to map data
             courses.value = cacheSnapshot.docs.map((doc) {
-              var data = doc.data();
+              var data = Map<String, dynamic>.from(
+                  _deepCopy(doc.data()) as Map<String, dynamic>);
               data['id'] = doc.id;
               data['courseName'] = doc.id;
               return data;
@@ -55,7 +50,6 @@ class NotesController extends GetxController {
             return; // Done
           }
         } catch (_) {
-          // No cache available.
           throw 'No internet connection and no cached notes.';
         }
       }
@@ -66,20 +60,21 @@ class NotesController extends GetxController {
       final snapshot = await pamphletFirestore.collection('notes').get();
 
       if (snapshot.docs.isEmpty) {
-        courses.clear(); // Ensure list is empty
+        courses.clear();
         errorMessage('No notes found.');
         return;
       }
 
       courses.value = snapshot.docs.map((doc) {
-        var data = doc.data();
-        data['id'] =
-            doc.id; // The doc ID is the course name (e.g., 'Mathematics')
+        var data = Map<String, dynamic>.from(
+            _deepCopy(doc.data()) as Map<String, dynamic>);
+        data['id'] = doc.id;
         data['courseName'] = doc.id;
         return data;
       }).toList();
-    } catch (e) {
+    } catch (e, stackTrace) {
       print("Error fetching notes: $e");
+      print("Stack trace: $stackTrace");
       errorMessage(
           'Unable to load notes. Please check your internet connection.');
       showSafeSnackbar(

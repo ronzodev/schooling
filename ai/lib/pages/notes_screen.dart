@@ -198,8 +198,9 @@ class NotesScreen extends StatelessWidget {
             if (NotesScreen._clickCount % 2 == 0 &&
                 GoogleAdsController.instance.isInterstitialReady()) {
               // Set callback to navigate after ad closes
-              GoogleAdsController.instance.onInterstitialClosed = () {
-                Get.to(() => PdfViewerScreen(
+              GoogleAdsController.instance.onInterstitialClosed = () async {
+                final ctx = Get.context;
+                await Get.to(() => PdfViewerScreen(
                       pdfUrl: link,
                       title: title,
                     ));
@@ -211,14 +212,14 @@ class NotesScreen extends StatelessWidget {
                 GoogleAdsController.instance.showInterstitialAd();
               } catch (e) {
                 debugPrint('⚠️ Error showing interstitial: $e');
-                Get.to(() => PdfViewerScreen(
+                await Get.to(() => PdfViewerScreen(
                       pdfUrl: link,
                       title: title,
                     ));
               }
             } else {
               // Navigate directly if not 2nd click or ad not ready
-              Get.to(() => PdfViewerScreen(
+              await Get.to(() => PdfViewerScreen(
                     pdfUrl: link,
                     title: title,
                   ));

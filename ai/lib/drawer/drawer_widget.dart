@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:line_icons/line_icons.dart';
 import '../theme/app_theme.dart';
-import '../controllers/about_us.dart';
 import '../controllers/link_controller.dart';
-import '../pages/about_us_screen.dart';
 import '../pages/course.dart';
 import '../pages/main_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,7 +15,6 @@ class CustomDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     // Initialize controllers
     final LinksController linksController = Get.put(LinksController());
-    final AboutUsController aboutController = Get.put(AboutUsController());
 
     return Drawer(
       child: Container(
@@ -89,11 +86,7 @@ class CustomDrawer extends StatelessWidget {
               title: 'Privacy Policy',
               onTap: () => privacyPolicy(),
             ),
-            _buildDrawerItem(
-              icon: Icons.info_rounded,
-              title: 'About Us',
-              onTap: () => Get.to(() => const AboutUsPage()),
-            ),
+
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8.0),
               child: Divider(color: Colors.white24),

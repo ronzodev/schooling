@@ -6,8 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_tex/flutter_tex.dart';
+import '../controllers/network_controller.dart';
 import '../controllers/question_controller.dart';
+import '../controllers/review_contr.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ad_placeholder_widget.dart';
 import 'view_question.dart';
 import '../widgets/no_connection_widget.dart';
 
@@ -86,6 +89,8 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
         _globalAnswerRevealCount = 0;
       } else {
         visibleAnswers.add(index);
+        // Track reveal for app review eligibility
+        _tryTriggerReview();
       }
     }
   }
@@ -95,10 +100,23 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
       _adsController.onInterstitialClosed = () {
         visibleAnswers.add(index);
         _adsController.onInterstitialClosed = () {};
+        // Track reveal for app review eligibility
+        _tryTriggerReview();
       };
       _adsController.showInterstitialAd();
     } else {
       visibleAnswers.add(index);
+      _tryTriggerReview();
+    }
+  }
+
+  /// Notify the review controller that an answer was revealed.
+  /// Runs in background — never blocks UI.
+  void _tryTriggerReview() {
+    try {
+      AppReviewController.instance.onAnswerRevealed();
+    } catch (_) {
+      // Review controller not registered yet — silently skip
     }
   }
 
@@ -291,19 +309,44 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
       );
     }
 
-    // Questions list
+    // Questions list with native ads every 5 questions
+    const int adInterval = 5;
+    final int questionCount = questionController.questions.length;
+    final int adCount = questionCount ~/ adInterval;
+    final int totalItems =
+        questionCount + adCount + (questionController.hasMore.value ? 1 : 0);
+
+    // Pre-compute which indices are ads
+    final Set<int> adPositions = {};
+    for (int i = 1; i <= adCount; i++) {
+      adPositions.add((i * adInterval) + (i - 1));
+    }
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: questionController.questions.length +
-          (questionController.hasMore.value ? 1 : 0),
+      itemCount: totalItems,
       itemBuilder: (context, index) {
-        if (index == questionController.questions.length) {
+        // Load more indicator at the end
+        if (index == totalItems - 1 && questionController.hasMore.value) {
           return _buildLoadMoreIndicator();
         }
+
+        // Native ad slot
+        if (adPositions.contains(index)) {
+          final adNumber = adPositions.toList().indexOf(index);
+          return _buildNativeAdCard(adIndex: adNumber);
+        }
+
+        // Calculate real question index accounting for ad slots
+        final adsBeforeThis = adPositions.where((p) => p < index).length;
+        final questionIndex = index - adsBeforeThis;
+
+        if (questionIndex >= questionCount) return const SizedBox.shrink();
+
         return _buildQuestionCard(
-          index: index,
-          question: questionController.questions[index],
+          index: questionIndex,
+          question: questionController.questions[questionIndex],
         );
       },
     );
@@ -335,6 +378,109 @@ class _QuestionListScreenState extends State<QuestionListScreen> {
               ),
       ),
     );
+  }
+
+  Widget _buildNativeAdCard({required int adIndex}) {
+    NetworkController? getNetworkController() {
+      try {
+        return Get.find<NetworkController>();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return Obx(() {
+      // ignore: unused_local_variable
+      final _ = _adsController.adUpdateTrigger.value;
+
+      final nc = getNetworkController();
+      final isOnline =
+          nc == null || (nc.isConnected.value && nc.isInternetReachable.value);
+
+      // Offline placeholder — no red errors
+      if (!isOnline) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.cardBackground.withValues(alpha: 0.9),
+                AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
+            ),
+          ),
+          child: const AdPlaceholderWidget(height: 80),
+        );
+      }
+
+      // Online: try real ad
+      final adWidget = _adsController.getNativeAdWidget(
+        width: double.infinity,
+        height: 80,
+        adIndex: adIndex,
+      );
+
+      // Loading placeholder
+      if (adWidget == null) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.cardBackground.withValues(alpha: 0.9),
+                AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
+            ),
+          ),
+          child: const AdPlaceholderWidget(height: 80),
+        );
+      }
+
+      // Real ad ready
+      return Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.cardBackground.withValues(alpha: 0.9),
+              AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: adWidget,
+      );
+    });
   }
 
   Widget _buildQuestionCard({

@@ -4,12 +4,16 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 import '../theme/app_theme.dart';
 import '../controllers/ads_controller.dart';
+import '../controllers/network_controller.dart';
 import '../utils/safe_snackbar.dart';
 import '../widgets/no_connection_widget.dart';
+import '../widgets/ad_placeholder_widget.dart';
 import 'pdf_viewer_screen.dart';
 
 class PastPapersScreen extends StatefulWidget {
   const PastPapersScreen({super.key});
+
+  static int _clickCount = 0;
 
   @override
   State<PastPapersScreen> createState() => _PastPapersScreenState();
@@ -167,8 +171,29 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
 
           const Spacer(),
 
-          // Placeholder for symmetry
-          const SizedBox(width: 44),
+          // Refresh button
+          GestureDetector(
+            onTap: () {
+              setState(() {}); // Re-triggers all StreamBuilders
+              // Also reload ads in case they failed due to network
+              try {
+                GoogleAdsController.instance.preloadAllAds();
+              } catch (_) {}
+            },
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBackground.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: const Icon(
+                Icons.refresh_rounded,
+                color: AppTheme.accentBlue,
+                size: 20,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -636,10 +661,40 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
                       return;
                     }
                   } catch (_) {}
-                  Get.to(() => PdfViewerScreen(
-                        pdfUrl: url,
-                        title: name,
-                      ));
+
+                  // Increment click count
+                  PastPapersScreen._clickCount++;
+
+                  // Check if we should show ad (every 2nd click)
+                  if (PastPapersScreen._clickCount % 2 == 0 &&
+                      GoogleAdsController.instance.isInterstitialReady()) {
+                    // Set callback to navigate after ad closes
+                    GoogleAdsController.instance.onInterstitialClosed =
+                        () async {
+                      await Get.to(() => PdfViewerScreen(
+                            pdfUrl: url,
+                            title: name,
+                          ));
+                      GoogleAdsController.instance.onInterstitialClosed = null;
+                    };
+
+                    // Show the ad — wrapped safely
+                    try {
+                      GoogleAdsController.instance.showInterstitialAd();
+                    } catch (e) {
+                      debugPrint('⚠️ Error showing interstitial: $e');
+                      await Get.to(() => PdfViewerScreen(
+                            pdfUrl: url,
+                            title: name,
+                          ));
+                    }
+                  } else {
+                    // Just go straight to PDF
+                    await Get.to(() => PdfViewerScreen(
+                          pdfUrl: url,
+                          title: name,
+                        ));
+                  }
                 } else {
                   showSafeSnackbar(
                     title: 'Unavailable',
@@ -753,24 +808,81 @@ class _PastPapersScreenState extends State<PastPapersScreen> {
   Widget _buildNativeAdCard({required int adIndex}) {
     final adsController = GoogleAdsController.instance;
 
+    // Safe accessor for NetworkController
+    NetworkController? getNetworkController() {
+      try {
+        return Get.find<NetworkController>();
+      } catch (_) {
+        return null;
+      }
+    }
+
     return Obx(() {
-      // Access trigger to rebuild on ad changes
+      // React to both ad changes and network state changes
       // ignore: unused_local_variable
       final _ = adsController.adUpdateTrigger.value;
 
-      // Try to get a native ad widget with exact paper card styling
+      final nc = getNetworkController();
+      final isOnline =
+          nc == null || (nc.isConnected.value && nc.isInternetReachable.value);
+
+      // ── Offline / poor network ────────────────────────────────────────────
+      // Show a styled placeholder instead of a red WebView error or empty gap.
+      if (!isOnline) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.cardBackground.withValues(alpha: 0.9),
+                AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: const AdPlaceholderWidget(height: 80),
+        );
+      }
+
+      // ── Online: try to get a real ad ──────────────────────────────────────
       final adWidget = adsController.getNativeAdWidget(
         width: double.infinity,
-        height: 80, // Compact height to match paper card
+        height: 80,
         adIndex: adIndex,
       );
 
-      // If no ad is available, return empty widget
+      // Ad is online but not yet loaded — show placeholder while it loads
       if (adWidget == null) {
-        return const SizedBox.shrink();
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.cardBackground.withValues(alpha: 0.9),
+                AppTheme.cardBackgroundLight.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1,
+            ),
+          ),
+          child: const AdPlaceholderWidget(height: 80),
+        );
       }
 
-      // Wrap in exact styling
+      // ── Ad loaded and ready ───────────────────────────────────────────────
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(4),

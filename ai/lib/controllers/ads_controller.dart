@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:get/get.dart';
 import '../widgets/safe_ad_widget.dart';
+import 'network_controller.dart';
 
 class GoogleAdsController {
   static GoogleAdsController? _instance;
@@ -17,11 +18,12 @@ class GoogleAdsController {
   // Ad Unit IDs (Android - Real)
   static const String _androidInterstitialAdUnitId =
       'ca-app-pub-9049620363523701/1707308928';
+  //'ca-app-pub-3940256099942544/1033173712';
   static const String _androidBannerAdUnitId =
       'ca-app-pub-3940256099942544/6300978111'; // Test ID for now, replace if you have real one
   static const String _androidNativeAdUnitId =
       'ca-app-pub-9049620363523701/8454585993';
-
+  //'ca-app-pub-3940256099942544/2247696110';
   // Ad Unit IDs (iOS - Test IDs)
   // TODO: Replace with your actual iOS Ad Unit IDs
   static const String _iosInterstitialAdUnitId =
@@ -88,21 +90,40 @@ class GoogleAdsController {
       debugPrint('⚠️ Ad preloading failed: $e');
     }
 
-    // Listen for connectivity changes to reload/dispose ads
+    // Listen for connectivity changes to reload/dispose ads.
+    // We piggyback on NetworkController which already tracks both
+    // interface state AND real internet reachability.
     try {
-      Connectivity().onConnectivityChanged.listen((results) {
-        if (!results.contains(ConnectivityResult.none)) {
-          reloadAdsOnReconnect();
-        } else {
-          // Network lost — dispose all native ads to prevent
-          // "web page not available" WebView errors
+      Connectivity().onConnectivityChanged.listen((results) async {
+        if (results.contains(ConnectivityResult.none)) {
+          // Interface is gone — dispose immediately
           _disposeAllNativeAds();
-          // Also dispose banner since it can show WebView errors
           disposeBannerAd();
+        } else {
+          // Interface is up, but wait for the NetworkController probe to
+          // confirm actual internet before reloading ads.
+          await Future.delayed(const Duration(seconds: 1));
+          final nc = _networkController;
+          if (nc != null && nc.isOnline) {
+            reloadAdsOnReconnect();
+          } else if (nc != null && !nc.isInternetReachable.value) {
+            // Interface up but internet unreachable — dispose to prevent errors
+            _disposeAllNativeAds();
+            disposeBannerAd();
+          }
         }
       });
     } catch (e) {
       debugPrint('⚠️ Connectivity listener setup failed: $e');
+    }
+  }
+
+  /// Safe accessor for NetworkController — returns null if not yet registered.
+  NetworkController? get _networkController {
+    try {
+      return Get.find<NetworkController>();
+    } catch (_) {
+      return null;
     }
   }
 
@@ -551,9 +572,17 @@ class GoogleAdsController {
 
   // ==================== NETWORK HELPER ====================
 
-  /// Check if device has network connectivity
+  /// Check if device has real internet access.
+  /// Uses NetworkController's reachability state (which includes socket probe)
+  /// when available, falls back to connectivity_plus interface check.
   Future<bool> _hasNetwork() async {
     try {
+      final nc = _networkController;
+      if (nc != null) {
+        // NetworkController already has an up-to-date probe result
+        return nc.isOnline;
+      }
+      // Fallback: interface-only check
       final results = await Connectivity().checkConnectivity();
       return !results.contains(ConnectivityResult.none);
     } catch (e) {
@@ -562,11 +591,18 @@ class GoogleAdsController {
     }
   }
 
-  /// Reload all ads (called when connectivity is restored)
+  /// Reload all ads (called when connectivity is restored and internet is confirmed).
   Future<void> reloadAdsOnReconnect() async {
     debugPrint('🔄 Network restored - reloading ads...');
-    // Add small delay to ensure connection is stable
+    // Wait a bit for the connection to stabilise
     await Future.delayed(const Duration(seconds: 2));
+
+    // Confirm internet is truly reachable before loading (avoids WebView errors)
+    if (!await _hasNetwork()) {
+      debugPrint(
+          '⚠️ reloadAdsOnReconnect: internet still unreachable, aborting');
+      return;
+    }
 
     try {
       // Only reload what's missing

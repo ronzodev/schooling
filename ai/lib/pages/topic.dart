@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/ads_controller.dart';
+import '../controllers/network_controller.dart';
 import '../controllers/topic_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/icon_helper.dart';
+import '../widgets/ad_placeholder_widget.dart';
 import '../widgets/no_connection_widget.dart';
 
 class TopicListScreen extends StatefulWidget {
@@ -348,36 +350,80 @@ class _TopicListScreenState extends State<TopicListScreen> {
   Widget _buildNativeAdCard(int index) {
     final adsController = GoogleAdsController.instance;
 
-    // Use Obx to rebuild when ads are loaded/disposed
+    NetworkController? getNetworkController() {
+      try {
+        return Get.find<NetworkController>();
+      } catch (_) {
+        return null;
+      }
+    }
+
     return Obx(() {
-      // Access the trigger to ensure rebuild
       // ignore: unused_local_variable
       final _ = adsController.adUpdateTrigger.value;
 
+      final nc = getNetworkController();
+      final isOnline =
+          nc == null || (nc.isConnected.value && nc.isInternetReachable.value);
+
+      // ── Offline / poor network ────────────────────────────────────────────
+      if (!isOnline) {
+        return Container(
+          width: 320,
+          height: 250,
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1B2E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.07),
+            ),
+          ),
+          child: const AdPlaceholderWidget(height: 250),
+        );
+      }
+
+      // ── Online: try real ad ───────────────────────────────────────────────
       final adWidget = adsController.getNativeAdWidget(
         width: 320,
         height: 250,
         adIndex: index,
       );
 
-      if (adWidget == null) return const SizedBox.shrink();
+      // Ad loading — show placeholder while it fetches
+      if (adWidget == null) {
+        return Container(
+          width: 320,
+          height: 250,
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1B2E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.07),
+            ),
+          ),
+          child: const AdPlaceholderWidget(height: 250),
+        );
+      }
 
+      // ── Ad ready ──────────────────────────────────────────────────────────
       return Container(
         width: 320,
         height: 250,
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2E), // Match native ad background
+          color: const Color(0xFF1E1E2E),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
           ],
           border: Border.all(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
           ),
         ),
         child: ClipRRect(

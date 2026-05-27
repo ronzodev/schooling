@@ -13,7 +13,9 @@ import 'category_header_delegate.dart';
 import '../solar/solar_system_screen.dart';
 import 'notes_screen.dart';
 import 'past_papers.dart';
+import 'notifications_screen.dart';
 import '../widgets/no_connection_widget.dart';
+import '../controllers/notifications_controller.dart';
 
 class CourseListScreen extends StatelessWidget {
   // Playful gradient colors for course cards
@@ -68,6 +70,54 @@ class CourseListScreen extends StatelessWidget {
                   ),
                 ),
                 actions: [
+                  // Notifications Button
+                  GestureDetector(
+                    onTap: () {
+                      Get.to(() => const NotificationsScreen());
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardBackground.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
+                            Icons.notifications_none_rounded,
+                            color: AppTheme.textPrimary,
+                            size: 22,
+                          ),
+                          Obx(() {
+                            final count = NotificationsController.instance.unreadCount.value;
+                            if (count == 0) return const SizedBox.shrink();
+                            return Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.accentPink,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  count > 9 ? '9+' : count.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   // WhatsApp Button
                   GestureDetector(
                     onTap: () {
@@ -184,14 +234,19 @@ class CourseListScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Obx(() => Text(
-                            Get.find<AppContentController>().sectionTitle.value,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
-                            ),
-                          )),
+                      Expanded(
+                        child: Obx(() => Text(
+                              Get.find<AppContentController>()
+                                  .sectionTitle
+                                  .value,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                            )),
+                      ),
+                      const SizedBox(width: 8),
                       Obx(() => Text(
                             '${courseController.courses.length} courses',
                             style: const TextStyle(
@@ -226,19 +281,16 @@ class CourseListScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Obx(() => Text(
-                    contentController.greeting.value,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  )),
-              const SizedBox(width: 8),
-              Obx(() => Text(
-                    contentController.emoji.value,
-                    style: const TextStyle(fontSize: 28),
-                  )),
+              Expanded(
+                child: Obx(() => Text(
+                      contentController.greeting.value,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    )),
+              ),
             ],
           ),
           const SizedBox(height: 4),

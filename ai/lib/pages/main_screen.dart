@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../pages/course.dart';
 import '../chem_periodic/periodic.dart';
 import '../math_formula/main_screen.dart';
+import 'saved_documents_screen.dart';
 
 // Native Ad Widget — network-aware, auto-reloads on reconnect
 class NativeAdWidget extends StatefulWidget {
@@ -155,6 +156,7 @@ class _MainScreenState extends State<MainScreen>
     CourseListScreen(),
     ElementsScreen(),
     const MathFormulasScreen(),
+    const SavedDocumentsScreen(),
   ];
 
   final List<NavItem> _navItems = [
@@ -172,6 +174,11 @@ class _MainScreenState extends State<MainScreen>
       icon: Icons.functions_rounded,
       label: 'Formulas',
       color: AppTheme.accentPurple,
+    ),
+    NavItem(
+      icon: Icons.download_done_rounded,
+      label: 'Saved',
+      color: AppTheme.accentGreen,
     ),
   ];
 
