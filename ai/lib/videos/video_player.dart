@@ -143,7 +143,7 @@
 //       ),
 //       onReady: () {
 //         if (mounted) {
-//           setState(() {
+//           setState(() {                                 
 //             _isPlayerReady = true;
 //             _hasError = false;
 //           });
